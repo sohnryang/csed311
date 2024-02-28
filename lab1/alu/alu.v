@@ -31,7 +31,7 @@ end
 			end
 			`FUNC_SUB: begin
 				assign C = A - B;
-				assign OverflowFlag = ~(A[data_width - 1] ^ B[data_width - 1]) & (A[data_width - 1] ^ C[data_width - 1]);
+				assign OverflowFlag = (A[data_width - 1] ^ B[data_width - 1]) & (A[data_width - 1] ^ C[data_width - 1]);
 			end
 			`FUNC_ID: begin
 				assign C = A;
@@ -74,11 +74,11 @@ end
 				assign OverflowFlag = 1'b0;
 			end
 			`FUNC_ALS: begin
-				assign C = A <<< 1;
+				assign C = signed'(A) <<< 1;
 				assign OverflowFlag = 1'b0;
 			end
 			`FUNC_ARS: begin
-				assign C = A >>> 1;
+				assign C = signed'(A) >>> 1;
 				assign OverflowFlag = 1'b0;
 			end
 			`FUNC_TCP: begin

@@ -22,7 +22,7 @@ VL_INLINE_OPT void Valu___024root___ico_sequent__TOP__0(Valu___024root* vlSelf) 
                     vlSelf->OverflowFlag = 0U;
                 }
             } else if ((1U & (IData)(vlSelf->FuncCode))) {
-                vlSelf->C = (0xffffU & VL_SHIFTR_III(16,16,32, (IData)(vlSelf->A), 1U));
+                vlSelf->C = (0xffffU & VL_SHIFTRS_III(16,16,32, (IData)(vlSelf->A), 1U));
                 vlSelf->OverflowFlag = 0U;
             } else {
                 vlSelf->C = (0xffffU & VL_SHIFTL_III(16,16,32, (IData)(vlSelf->A), 1U));
@@ -73,12 +73,11 @@ VL_INLINE_OPT void Valu___024root___ico_sequent__TOP__0(Valu___024root* vlSelf) 
     } else if ((1U & (IData)(vlSelf->FuncCode))) {
         vlSelf->C = (0xffffU & ((IData)(vlSelf->A) 
                                 - (IData)(vlSelf->B)));
-        vlSelf->OverflowFlag = (1U & ((~ (((IData)(vlSelf->A) 
-                                           ^ (IData)(vlSelf->B)) 
-                                          >> 0xfU)) 
-                                      & (((IData)(vlSelf->A) 
-                                          ^ (IData)(vlSelf->C)) 
-                                         >> 0xfU)));
+        vlSelf->OverflowFlag = (1U & ((((IData)(vlSelf->A) 
+                                        ^ (IData)(vlSelf->B)) 
+                                       & ((IData)(vlSelf->A) 
+                                          ^ (IData)(vlSelf->C))) 
+                                      >> 0xfU));
     } else {
         vlSelf->C = (0xffffU & ((IData)(vlSelf->A) 
                                 + (IData)(vlSelf->B)));
