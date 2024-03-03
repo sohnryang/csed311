@@ -42,6 +42,7 @@ module vending_machine (
   assign coin_value[2] = 1000;
 
   wire [31:0] current_total, buy_price;
+  wire timeout;
 
   // This module interface, structure, and given a number of modules are not mandatory but recommended.
   // However, Implementations that use modules are mandatory.
@@ -51,7 +52,7 @@ module vending_machine (
       .coin_value_table(coin_value),
       .coin_input(i_input_coin),
       .buy_price_input(buy_price),
-      .trigger_return(i_trigger_return),
+      .trigger_return(i_trigger_return || timeout),
       .coin_value(current_total),
       .return_coins(o_return_coin)
   );
@@ -68,5 +69,15 @@ module vending_machine (
       .current_total(current_total),
       .buy_price(buy_price),
       .buy_item_output(o_output_item)
+  );
+
+  timekeeper timekeeper_mod (
+      .clk(clk),
+      .reset_n(reset_n),
+      .current_total(current_total),
+      .coin_input(i_input_coin),
+      .selection_input(i_select_item),
+      .trigger_return(i_trigger_return),
+      .timeout(timeout)
   );
 endmodule
