@@ -345,3 +345,5 @@ TSWLatexianTemp*
 
 # End of https://www.toptal.com/developers/gitignore/api/c++,latex
 
+*.vcd
+.stamp.verilate
