@@ -18,6 +18,7 @@ module return_value_calculator (
     for (i = 0; i < `kNumCoins; i = i + 1) begin
       if (current_value >= coin_value_table[i]) begin
         return_coins[i] = 1;
+        current_value = current_value - coin_value_table[i];
       end else
         return_coins[i] = 0;
     end
