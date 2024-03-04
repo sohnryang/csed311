@@ -96,22 +96,14 @@ void Wait_10cycle(Vvending_machine* dut, VerilatedVcdC* m_trace) {
 void ReturnTest(int current, Vvending_machine* dut, VerilatedVcdC* m_trace) {
     test_num++;
     int total_current = current;
+    uint8_t return_coin[3];
     while (current > 0) {
-        if (dut->o_return_coin == 0b101) {
-            current = current - 1100;
-            printf("current %d \n", current);
-        } else if (dut->o_return_coin == 0b011) {
-            current = current - 600;
-            printf("current %d \n", current);
-        } else if (dut->o_return_coin == 0b001) {
-            current = current - 100;
-            printf("current %d \n", current);
-        } else if (dut->o_return_coin == 0b111) {
-            current = current - 1600;
-            printf("current %d \n", current);
-        } else {
-            printf("current %d \n", current);
-        }
+        return_coin[0] = dut->o_return_coin & 1;
+        return_coin[1] = (dut->o_return_coin >> 1) & 1;
+        return_coin[2] = (dut->o_return_coin >> 2) & 1;
+        if (return_coin[0]) current = current - 100;
+        if (return_coin[1]) current = current - 500;
+        if (return_coin[2]) current = current - 1000;
         next_cycle(dut, m_trace);
     }
 
