@@ -26,17 +26,20 @@ module timekeeper (
   always @(posedge clk) begin
     if (!reset_n) begin
       remaining_time <= 0;
-      timer_started  <= 0;
+      timer_started <= 0;
       timeout <= 0;
-    end else if (trigger_return || (timer_started && remaining_time == 32'b0)) begin
+    end else if (trigger_return) begin
+      timeout <= 0;
+      timer_started <= 0;
+    end else if (timer_started && remaining_time == 32'b0) begin
       if (current_total != 32'b0) timeout <= 1;
       else begin
         timeout <= 0;
-        timer_started  <= 0;
+        timer_started <= 0;
       end
     end else if (coin_input != `kNumCoins'b0 || selection_input != `kNumItems'b0) begin
       remaining_time <= 32'd`kWaitTime;
-      timer_started  <= 1;
+      timer_started <= 1;
       timeout <= 0;
     end else if (timer_started) remaining_time <= remaining_time - 1;
   end

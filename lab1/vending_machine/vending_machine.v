@@ -42,7 +42,7 @@ module vending_machine (
   assign coin_value[2] = 1000;
 
   wire [31:0] current_total, buy_price;
-  wire timeout;
+  wire timeout, delayed_trigger_return;
 
   // This module interface, structure, and given a number of modules are not mandatory but recommended.
   // However, Implementations that use modules are mandatory.
@@ -52,7 +52,7 @@ module vending_machine (
       .coin_value_table(coin_value),
       .coin_input(i_input_coin),
       .buy_price_input(buy_price),
-      .trigger_return(i_trigger_return || timeout),
+      .trigger_return(delayed_trigger_return || timeout),
       .coin_value(current_total),
       .return_coins(o_return_coin)
   );
@@ -79,5 +79,12 @@ module vending_machine (
       .selection_input(i_select_item),
       .trigger_return(i_trigger_return),
       .timeout(timeout)
+  );
+
+  return_trigger_handler return_trigger_handler_mod (
+      .clk(clk),
+      .reset_n(reset_n),
+      .trigger_return(i_trigger_return),
+      .delayed_trigger_return(delayed_trigger_return)
   );
 endmodule

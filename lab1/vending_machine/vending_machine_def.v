@@ -12,3 +12,5 @@
 `define kNumCoins 3
 
 `define kWaitTime 10
+
+`define kTriggerWait 1
