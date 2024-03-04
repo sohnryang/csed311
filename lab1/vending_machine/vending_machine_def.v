@@ -13,4 +13,4 @@
 
 `define kWaitTime 10
 
-`define kTriggerWait 1
+`define kTriggerWait 3
