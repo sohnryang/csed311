@@ -1,0 +1,107 @@
+\documentclass{scrartcl}
+\usepackage[margin=3cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{blindtext}
+\usepackage{datetime}
+\usepackage{fontspec}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{kotex}
+\usepackage[lighttt]{lmodern}
+\usepackage{listings}
+\usepackage{mathrsfs}
+\usepackage{mathtools}
+\usepackage{pgf,tikz,pgfplots}
+
+\pgfplotsset{compat=1.15}
+\usetikzlibrary{arrows}
+\newtheorem{theorem}{Theorem}
+
+\lstset{
+  numbers=none, frame=single, showspaces=false,
+  showstringspaces=false, showtabs=false, breaklines=true, showlines=true,
+  breakatwhitespace=true, basicstyle=\ttfamily, keywordstyle=\bfseries, basewidth=0.5em
+}
+
+\setmainhangulfont{Noto Serif CJK KR}[
+  UprightFont=* Light, BoldFont=* Bold,
+  Script=Hangul, Language=Korean, AutoFakeSlant,
+]
+\setsanshangulfont{Noto Sans CJK KR}[
+  UprightFont=* DemiLight, BoldFont=* Medium,
+  Script=Hangul, Language=Korean
+]
+\setmathhangulfont{Noto Sans CJK KR}[
+  SizeFeatures={
+    {Size=-6,  Font=* Medium},
+    {Size=6-9, Font=*},
+    {Size=9-,  Font=* DemiLight},
+  },
+  Script=Hangul, Language=Korean
+]
+\title{CSED311: Lab 1 (due Mar. 3)}
+\author{김태연(20220140), 손량(20220323)}
+\date{Last compiled on: \today, \currenttime}
+
+\newcommand{\un}[1]{\ensuremath{\ \mathrm{#1}}}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+베릴로그 RTL 설계 방법을 익히기 위해 간단한 combinational circuit과 sequential circuit인 ALU와
+vending machine을 구현해 본다.
+
+\section{Design}
+Vending machine은 크게 다음과 같은 모듈으로 나누어 설계하였다.
+
+\subsection{Coin Storage}
+이름에서 유추할 수 있듯, 사용자가 넣은 동전을 관리하는 모듈이다. 이 모듈은 다음 입력을 처리할 수 있도록 설계하였다.
+
+\begin{itemize}
+  \item 사용자가 집어넣은 동전에 대한 입력
+  \item 사용자가 구입한 물품의 가격
+  \item 동전 반환 버튼 입력, 시간 초과에 해당하는 입력
+\end{itemize}
+
+Coin storage의 경우 사용자 입력에 대해 바로 출력이 일어날 필요가 없으므로 Moore machine 형태로 설계하였다. 사용자의
+입력만 갖고 다음 상태를 계산하기 위해, 상태를 저장하는 레지스터에 대해 다음 상태를 담는 레지스터를 하나 더 추가해 구현하였다. 이 모듈에서
+사용하는 레지스터는 다음 정보를 저장한다.
+
+\begin{itemize}
+  \item 현재 저장하고 있는 동전의 총 합
+  \item 반환할 동전의 조합
+  \item 반환 버튼을 누르고 실제 동전 반환이 일어날 때까지 남은 시간
+\end{itemize}
+
+이러한 정보를 저장하는 것에서, coin storage가 가지는 상태는 다음과 같은 4-튜플으로 나타낼 수 있다.
+
+\begin{align*}
+  (C, R, T, S)
+  \in \{0, 1\}^{32} \times \{0, 1\}^\texttt{kNumCoins} \times \{0, 1\}^2
+  \times \{0, 1\}
+\end{align*}
+
+여기서 각 변수에 대한 설몀은 다음과 같다.
+
+\begin{itemize}
+  \item \(C\) -- 현재 저장 중인 동전의 총 합
+  \item \(R\) -- 반환할 동전의 조합
+  \item \(T\) -- 반환 버튼을 누르고 실제 반환이 일어날 때까지 남은 시간
+  \item \(S\) -- 반환 버튼을 누르고 기다리는 중인지의 여부
+\end{itemize}
+
+\subsection{Timekeeper}
+
+\subsection{계산을 위한 combinational logic}
+
+\section{Implementation}
+
+\section{Discussion}
+
+\section{Conclusion}
+
+\end{document}
+% vim: textwidth=79
