@@ -226,7 +226,9 @@ Vending machine 구현의 top-level에 해당하는 모듈이다. \texttt{coin\_
 입력에 대해 출력을 수행하도록 하였다.
 
 \section{Discussion}
-\texttt{:ta\_ggang:} % TODO: write discussion
+과제에서 고려할 필요가 없었기에 간단한 구현을 위해 반환 버튼을 누르는 동시에 동전을 투입하는 등 race condition이 일어날 만한
+상황에 대한 처리는 구현하지 않았다. race condition이 발생할 때의 처리를 미리 정의해 놓은 후에 이를 구현하여 설계를 개선해 보는
+것도 유익할 것이라고 생각한다.
 
 \section{Conclusion}
 주어진 테스트벤치의 실행 결과 다음과 같이 모든 테스트를 통과함을 알 수 있었다.
