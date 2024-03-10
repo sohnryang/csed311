@@ -167,6 +167,27 @@ sequential circuit을 구현하여 \texttt{coin\_value}, \texttt{return\_coins},
 \end{itemize}
 
 \subsection{\texttt{timekeeper.v} -- Timekeeper 모듈 구현}
+Timekeeper 모듈을 구현해 놓은 파일이다. 모듈의 입력은 다음과 같다.
+
+\begin{itemize}
+  \item \texttt{clk} -- clock signal
+  \item \texttt{reset\_n} -- reset signal
+  \item \texttt{current\_total} -- 현재 동전 액수의 합
+  \item \texttt{coin\_input} -- 넣은 동전의 조합
+  \item \texttt{selection\_input} -- 구입한 물품 입력
+  \item \texttt{trigger\_return} -- 동전 반환 버튼
+\end{itemize}
+
+상태를 저장하는 레지스터는 다음과 같다.
+
+\begin{itemize}
+  \item \texttt{remaining\_time} -- 남은 시간
+  \item \texttt{timer\_started} -- 카운트다운의 시작 여부
+\end{itemize}
+
+Mealy machine 형태로 구현하기 때문에 베릴로그 코드는 sequential logic에 대한 부분만 있다. 동전 반환 버튼을 눌렀을
+때나 10사이클의 시간이 모두 지나갔을 경우에는 출력 \texttt{timeout} 핀으로 시간이 끝났음을 신호로 보내고, 카운트다운을
+리셋하도록 하였다. 동전이나 물품 선택 등 사용자의 입력이 들어올 경우 카운트다운을 시작하도록 하였다.
 
 \subsection{\texttt{item\_display.v} -- 구매할 수 있는 물품 표시}
 
