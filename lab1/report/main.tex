@@ -129,6 +129,42 @@ sequential logic에서 여러 번 입력 값을 바꾸어 가면서 출력 값�
 각 베릴로그 파일에 대한 설명은 다음과 같다.
 
 \subsection{\texttt{coin\_storage.v} -- Coin storage 모듈 구현}
+Coin storage 모듈을 구현해 놓은 파일이다. 모듈의 입력은 다음과 같다.
+
+\begin{itemize}
+  \item \texttt{clk} -- clock signal
+  \item \texttt{reset\_n} -- reset signal
+  \item \texttt{coin\_value\_table} -- 비트 위치 \(\to\) 동전 액수 매핑
+  \item \texttt{coin\_input} -- 넣은 동전의 조합
+  \item \texttt{buy\_price\_input} -- 구입한 물품의 가격
+  \item \texttt{trigger\_return} -- 동전 반환 버튼
+  \item \texttt{timeout} -- 대기 시간 종료 여부
+\end{itemize}
+
+Moore machine 형태로 구현하기 때문에, 베릴로그 코드는 combinational logic과 sequential logic, 크게
+두 부분으로 나뉜다. combinational logic의 부분에서는 모듈의 입력에서 다음 상태를 계산한다. 설계한 상태를 저장하는 레지스터는
+다음과 같이 사용하였다.
+
+\begin{itemize}
+  \item \texttt{coin\_value} -- \(C\)에 해당
+  \item \texttt{return\_coins} -- \(R\)에 해당
+  \item \texttt{remaining\_time} -- \(T\)에 해당
+  \item \texttt{timer\_started} -- \(S\)에 해당
+\end{itemize}
+
+베릴로그 구현에서 레지스터와 wire의 mutlidriven 상황 등을 피하기 위하여 \texttt{always @(*)} 부분에서는
+combinational circuit을 구현하여 다음 상태에 레지스터에 저장할 값인 \texttt{coin\_value\_next},
+\texttt{return\_coins\_next}, \texttt{remaining\_time\_next},
+\texttt{timer\_started\_next}을 계산하고, \texttt{always @(posedge clk)} 부분에서는
+sequential circuit을 구현하여 \texttt{coin\_value}, \texttt{return\_coins},
+\texttt{remaining\_time}, \texttt{timer\_started} 레지스터를 업데이트하도록 코딩하였다.
+
+최종적으로, 모듈의 출력은 다음과 같다.
+
+\begin{itemize}
+  \item \texttt{coin\_value} -- 현재 저장된 동전의 액수
+  \item \texttt{return\_coins} -- 반환할 동전에 대한 출력
+\end{itemize}
 
 \subsection{\texttt{timekeeper.v} -- Timekeeper 모듈 구현}
 
