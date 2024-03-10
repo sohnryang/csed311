@@ -229,6 +229,57 @@ Vending machine 구현의 top-level에 해당하는 모듈이다. \texttt{coin\_
 \texttt{:ta\_ggang:} % TODO: write discussion
 
 \section{Conclusion}
+주어진 테스트벤치의 실행 결과 다음과 같이 모든 테스트를 통과함을 알 수 있었다.
+
+\begin{lstlisting}
+### SIMULATING ###
+ initial test
+PASSED : available item: 0, expected 0
+
+ Insert 100 Coin test
+PASSED : available item: 1, expected 1
+PASSED : available item: 3, expected 3
+
+ Insert 500 Coin test
+PASSED : available item: 3, expected 3
+PASSED : available item: 7, expected 7
+PASSED : available item: 15, expected 15
+
+ Insert 1000 Coin test
+PASSED : available item: 7, expected 7
+PASSED : available item: 15, expected 15
+
+ Select 1st Item test
+PASSED : available item: 15, expected 15
+PASSED : available item: 15, expected 15
+PASSED : available item: 7, expected 7
+PASSED : available item: 3, expected 3
+PASSED : available item: 0, expected 0
+
+ Select 2nd Item test
+PASSED : available item: 15, expected 15
+PASSED : available item: 7, expected 7
+PASSED : available item: 3, expected 3
+PASSED : available item: 0, expected 0
+
+ Select 3rd Item test
+PASSED : available item: 15, expected 15
+PASSED : available item: 7, expected 7
+PASSED : available item: 1, expected 1
+
+ Select 4th Item test
+PASSED : available item: 7, expected 7
+PASSED : available item: 1, expected 1
+
+ Wait Return test
+PASSED : wait 10 cycle
+PASSED : return 2800
+
+ Trigger Return test
+PASSED : return 4800
+TEST END
+SUCCESS : 25 / 25
+\end{lstlisting}
 
 \end{document}
 % vim: textwidth=79
