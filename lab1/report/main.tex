@@ -220,6 +220,11 @@ Mealy machine 형태로 구현하기 때문에 베릴로그 코드는 sequential
 모든 동전의 반환을 위해 여러 cycle이 소요될 수 있으며, 반복문에서 각 반복마다 작은 금액의 동전부터 채워나가는 방법으로 반환을
 진행한다.
 
+\subsection{\texttt{vending\_machine.v} -- Vending machine 구현}
+Vending machine 구현의 top-level에 해당하는 모듈이다. \texttt{coin\_storage},
+\texttt{item\_display}, \texttt{item\_selector}, \texttt{timekeeper} 모듈을 연결하여
+입력에 대해 출력을 수행하도록 하였다.
+
 \section{Discussion}
 \texttt{:ta\_ggang:} % TODO: write discussion
 
