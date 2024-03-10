@@ -204,18 +204,21 @@ Mealy machine 형태로 구현하기 때문에 베릴로그 코드는 sequential
 \subsection{\texttt{item\_selector.v} -- 사용자의 물품 선택 처리}
 
 사용자의 선택으로부터 구매가 가능한지 판별하며, 한번에 여러 개의 구매 버튼을 눌러도 반복문 내에서
-모든 상품에 대해 구매 여부를 검사하여 최종적으로 구매 가격의 합계와 구매 물품의 종류를 반환한다.
+모든 상품에 대해 구매 여부를 검사하여 최종적으로 구매 가격의 합계와 구매 물품의 종류를 반환한다. 이 모듈 역시
+\texttt{item\_display} 모듈과 마찬가지로 다양한 \texttt{`kNumItems} 값에 대응할 수 있도록
+\texttt{always @(*)} 내부에서 \texttt{for}문을 사용하여 구현하였다.
 
 \subsection{\texttt{coin\_value\_calculator.v} -- 동전 조합에 따른 액수 계산}
-
 한 clock cycle마다 동전의 조합 형태로 입력이 들어올 때, 동전의 액수와 동전의 조합을 입력으로 받아서
-조합에 해당하는 액수를 반환하는 모듈을 설계하였다.
+조합에 해당하는 액수를 반환하는 모듈을 설계하였다. 이 모듈 역시 \texttt{item\_display} 모듈과 마찬가지로 다양한
+\texttt{`kNumItems} 값에 대응할 수 있도록 \texttt{always @(*)} 내부에서 \texttt{for}문을 사용하여
+구현하였다.
 
 \subsection{\texttt{return\_value\_calculator.v} -- 반환할 수 있는 동전 조합 계산}
 
 입력되는 동전과 유사하게, 매 clock cycle마다 반환 가능한 동전 조합을 계산한다.
-모든 동전의 반환을 위해 여러 cycle이 소요될 수 있으며, 각 cycle마다 작은 금액의 동전부터 채워나가는 방법으로
-반환을 진행한다.
+모든 동전의 반환을 위해 여러 cycle이 소요될 수 있으며, 반복문에서 각 반복마다 작은 금액의 동전부터 채워나가는 방법으로 반환을
+진행한다.
 
 \section{Discussion}
 \texttt{:ta\_ggang:} % TODO: write discussion
