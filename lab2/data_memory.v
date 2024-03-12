@@ -18,10 +18,11 @@ module data_memory #(
   // Do not touch or use _unused_ok
   wire _unused_ok = &{1'b0, addr[31:16], addr[1:0], 1'b0};
 
-  // TODO
-  // Asynchrnously read data from the memory
-  // Synchronously write data to the memory
-  // (use dmem_addr to access memory)
+  assign dout = mem[dmem_addr] & {32{mem_read}};
+
+  always @(posedge clk) begin
+    if (mem_write) mem[dmem_addr] <= din;
+  end
 
   // Initialize data memory (do not touch)
   always @(posedge clk) begin
