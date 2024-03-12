@@ -38,6 +38,12 @@ module cpu (
 
   wire control_unit_output [0:`CONTROL_UNIT_LINES_COUNT - 1];
 
+  wire [31:0] current_pc_address;
+  wire [31:0] next_pc_address;
+  wire [31:0] adjacent_pc_address;
+  wire [31:0] adder_offset_pc_address;
+  wire [31:0] branch_determined_pc_address;
+
   /***** Register declarations *****/
 
   // ---------- Update program counter ----------
@@ -45,15 +51,15 @@ module cpu (
   pc pc (
       .reset     (),  // input (Use reset to initialize PC. Initial value must be 0)
       .clk       (),  // input
-      .next_pc   (),  // input
-      .current_pc()   // output
+      .next_pc   (next_pc_address),  // input
+      .current_pc(current_pc_address)   // output
   );
 
   // ---------- Instruction Memory ----------
   instruction_memory imem(
     .reset(),   // input
     .clk(),     // input
-    .addr(),    // input
+    .addr(current_pc_address),    // input
     .dout(instruction)     // output
   );
 
@@ -121,7 +127,7 @@ module cpu (
 
   mux32bit mux_register_write_data_select(
     .mux_in_0(mux_dmem_output),  // Data memeory out
-    .mux_in_1(),  // PC + 4
+    .mux_in_1(adjacent_pc_address),  // PC + 4
     .sel(control_unit_output[`CONTROL_PC_TO_REG]),
     .mux_out(register_write_data)  // to reg_file.rd_din
   );
@@ -138,7 +144,31 @@ module cpu (
     .mux_in_1(dmem_output),
     .sel(control_unit_output[`CONTROL_MEM_TO_REG]),
     .mux_out(mux_dmem_output)
+  );
+
+  adder32bit adder_adjacent_pc_address(
+    .adder_in_0(current_pc_address),
+    .adder_in_1(32'h00000004),
+    .adder_out(adjacent_pc_address)
+  );
+
+  adder32bit adder_offset_pc_address(
+    .adder_in_0(current_pc_address),
+    .adder_in_1(imm_gen_ouput),
+    .adder_out(adder_offset_pc_address)
+  );
+
+  mux32bit mux_branch_select(
+    .mux_in_0(adjacent_pc_address),
+    .mux_in_1(adder_offset_pc_address),
+    .sel(control_unit_output[`CONTROL_JAL] | (control_unit_output[`CONTROL_BRANCH] & alu_bcond_output)),
+    .mux_out(branch_determined_pc_address)
+  );
+
+  mux32bit mux_alu_address_select(
+    .mux_in_0(branch_determined_pc_address),
+    .mux_in_1(alu_output),
+    .sel(control_unit_output[`CONTROL_JALR]),
+    .mux_out(current_pc_address)
   )
-
-
 endmodule
