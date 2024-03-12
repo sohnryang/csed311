@@ -16,9 +16,12 @@ module register_file (
   // Do not touch or use print_reg
   assign print_reg = rf;
 
-  // TODO
-  // Asynchronously read register file
-  // Synchronously write data to the register file
+  assign rs1_dout  = rf[rs1];
+  assign rs2_dout  = rf[rs2];
+
+  always @(posedge clk) begin
+    if (write_enable) rf[rd] <= rd_din;
+  end
 
   // Initialize register file (do not touch)
   always @(posedge clk) begin
