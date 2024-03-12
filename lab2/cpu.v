@@ -49,24 +49,24 @@ module cpu (
   // ---------- Update program counter ----------
   // PC must be updated on the rising edge (positive edge) of the clock.
   pc pc (
-      .reset     (),  // input (Use reset to initialize PC. Initial value must be 0)
-      .clk       (),  // input
+      .reset     (reset),  // input (Use reset to initialize PC. Initial value must be 0)
+      .clk       (clk),  // input
       .next_pc   (next_pc_address),  // input
       .current_pc(current_pc_address)   // output
   );
 
   // ---------- Instruction Memory ----------
   instruction_memory imem(
-    .reset(),   // input
-    .clk(),     // input
+    .reset(reset),   // input
+    .clk(clk),     // input
     .addr(current_pc_address),    // input
     .dout(instruction)     // output
   );
 
   // ---------- Register File ----------
   register_file reg_file (
-    .reset (),        // input
-    .clk (),          // input
+    .reset (reset),        // input
+    .clk (clk),          // input
     .rs1 (instruction[19:15]),          // input
     .rs2 (instruction[24:20]),          // input
     .rd (instruction[11:7]),           // input
@@ -116,8 +116,8 @@ module cpu (
 
   // ---------- Data Memory ----------
   data_memory dmem(
-    .reset (),      // input
-    .clk (),        // input
+    .reset (reset),      // input
+    .clk (clk),        // input
     .addr (alu_result),       // input
     .din (reg_file_read_dout2),        // input
     .mem_read (control_unit_output[`CONTROL_MEM_READ]),   // input
