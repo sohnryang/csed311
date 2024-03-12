@@ -347,3 +347,4 @@ TSWLatexianTemp*
 
 *.vcd
 .stamp.verilate
+obj_dir/
