@@ -9,10 +9,12 @@
 // 4. `include files if required
 `include "cpu_def.v"
 
-module cpu(input reset,                     // positive reset signal
-           input clk,                       // clock signal
-           output is_halted,                // Whehther to finish simulation
-           output [31:0] print_reg [0:31]); // TO PRINT REGISTER VALUES IN TESTBENCH (YOU SHOULD NOT USE THIS)
+module cpu (
+    input         reset,           // positive reset signal
+    input         clk,             // clock signal
+    output        is_halted,       // Whehther to finish simulation
+    output [31:0] print_reg[0:31]
+);  // TO PRINT REGISTER VALUES IN TESTBENCH (YOU SHOULD NOT USE THIS)
   /***** Wire declarations *****/
 
   wire [31:0] instruction;
@@ -40,13 +42,13 @@ module cpu(input reset,                     // positive reset signal
 
   // ---------- Update program counter ----------
   // PC must be updated on the rising edge (positive edge) of the clock.
-  pc pc(
-    .reset(),       // input (Use reset to initialize PC. Initial value must be 0)
-    .clk(),         // input
-    .next_pc(),     // input
-    .current_pc()   // output
+  pc pc (
+      .reset     (),  // input (Use reset to initialize PC. Initial value must be 0)
+      .clk       (),  // input
+      .next_pc   (),  // input
+      .current_pc()   // output
   );
-  
+
   // ---------- Instruction Memory ----------
   instruction_memory imem(
     .reset(),   // input

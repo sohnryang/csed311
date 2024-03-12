@@ -1,0 +1,12 @@
+`define ALU_ADD 0
+`define ALU_SUB 1
+`define ALU_SLL 2
+`define ALU_SLT 3
+`define ALU_SLTU 4
+`define ALU_XOR 5
+`define ALU_SRL 6
+`define ALU_SRA 7
+`define ALU_OR 8
+`define ALU_AND 9
+`define ALU_EQ 10
+`define ALU_NE 11
