@@ -18,7 +18,7 @@ module cpu (
   /***** Wire declarations *****/
 
   wire [31:0] instruction;
-  wire [31:0] alu_operation;
+  wire [3:0] alu_operation;
 
   wire [31:0] reg_file_read_dout1;
   wire [31:0] reg_file_read_dout2;
@@ -101,7 +101,7 @@ module cpu (
 
   // ---------- ALU Control Unit ----------
   alu_control_unit alu_ctrl_unit (
-    .part_of_inst({inst[30], instruction[14:12], instruction[6:0]}),  // input
+    .part_of_inst({inst[31:25], instruction[14:12], instruction[6:0]}),  // input
     .alu_op(alu_operation)         // -> ALU.ALU_OP
   );
 
@@ -170,5 +170,5 @@ module cpu (
     .mux_in_1(alu_output), // ALU.ALU_RESULT ->
     .sel(control_unit_output[`CONTROL_JALR]), // CTRL_UNIT ->
     .mux_out(next_pc_address) // -> PC.NEXT_PC
-  )
+  );
 endmodule
