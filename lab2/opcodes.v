@@ -30,8 +30,7 @@
 `define FUNCT3_LW 3'b010
 `define FUNCT3_SW 3'b010
 
-`define FUNCT3_ADD 3'b000
-`define FUNCT3_SUB 3'b000
+`define FUNCT3_ADD_SUB 3'b000
 `define FUNCT3_SLL 3'b001
 `define FUNCT3_SLT 3'b010
 `define FUNCT3_SLTU 3'b011
