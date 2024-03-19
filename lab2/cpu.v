@@ -101,7 +101,7 @@ module cpu (
 
   // ---------- Immediate Generator ----------
   immediate_generator imm_gen(
-    .part_of_inst(instruction),  // input
+    .inst(instruction),  // input
     .i_imm(imm_gen_output_type_i),    // (@ I-Imm, Load, JALR) -> MUX_ALU_IN_2_SELECT.MUX_IN_1
     .s_imm(imm_gen_output_type_s),    // (@ Store) -> MUX_ALU_IN_2_SELECT.MUX_IN_1
     .b_imm(imm_gen_output_type_b),    // (@ Branch) -> ADDER_OFFSET_PC_ADDRESS.ADDER_IN_1
@@ -174,7 +174,7 @@ module cpu (
     .mux_in_1(imm_gen_output_type_j), // (@ JAL) IMM_GEN.J_IMM ->
     .sel(control_unit[`CONTROL_JAL]), // CTRL_UNIT -> 
     .mux_out(adder_offset_pc_address_adder_in_1)  // -> ADDER_OFFSET_PC_ADDRESS.ADDER_IN_1
-  )
+  );
 
   adder32bit adder_offset_pc_address(
     .adder_in_0(current_pc_address), // PC.CURRENT_PC -> 
