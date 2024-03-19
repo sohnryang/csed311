@@ -39,8 +39,6 @@ module cpu (
 
   wire [31:0] mux_dmem_output;
 
-  wire alu_bcond_output;
-
   wire control_unit_output [0:`CONTROL_UNIT_LINES_COUNT - 1];
 
   wire [31:0] current_pc_address;
@@ -120,8 +118,7 @@ module cpu (
     .alu_op(alu_operation),      // ALU_CTRL_UNIT.ALU_OP ->
     .alu_in_1(reg_file_read_dout1),    // REG_FILE.RS1_DOUT -> 
     .alu_in_2(alu_in2_input),    // MUX_ALU_IN2_SELECT.MUX_OUT -> 
-    .alu_result(alu_output),  // -> MUX_ALU_ADDRESS_SELECT.MUX_IN_1, -> DMEM.ADDR, -> MUX_DMEM_OUT_SELECT.MUX_IN_0
-    .alu_bcond(alu_bcond_output)    // -> MUX_BRANCH_SELECT.SEL
+    .alu_result(alu_output),  // -> MUX_ALU_ADDRESS_SELECT.MUX_IN_1, -> DMEM.ADDR, -> MUX_DMEM_OUT_SELECT.MUX_IN_0, -> MUX_BRANCH_SELECT.SEL (as LSB)
   );
 
   // ---------- Data Memory ----------
@@ -185,7 +182,7 @@ module cpu (
   mux32bit mux_branch_select(
     .mux_in_0(adjacent_pc_address), // ADDER_ADJACENT_PC_ADDRESS.ADDER_OUT ->
     .mux_in_1(added_offset_pc_address), // ADDER_OFFSET_PC_ADDRESS.ADDER_OUT ->
-    .sel(control_unit_output[`CONTROL_JAL] | (control_unit_output[`CONTROL_BRANCH] & alu_bcond_output)), // CTRL_UNIT -> , CTRL_UNIT ->, ALU.ALU_BCOND
+    .sel(control_unit_output[`CONTROL_JAL] | (control_unit_output[`CONTROL_BRANCH] & alu_output[0])), // CTRL_UNIT -> , CTRL_UNIT ->, ALU.ALU_RESULT[0]
     .mux_out(branch_determined_pc_address)  // -> MUX_ALU_ADDRESS_SELECT.MUX_IN_0
   );
 

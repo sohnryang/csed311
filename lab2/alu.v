@@ -41,10 +41,10 @@ module alu (
         assign alu_result = alu_in_1 & alu_in_2;
       end
       `ALU_EQ: begin
-        assign alu_bcond = {31'b0, alu_in_1 == alu_in_2};
+        assign alu_result = {31'b0, alu_in_1 == alu_in_2};
       end
       `ALU_NE: begin
-        assign alu_bcond = {31'b0, alu_in_1 != alu_in_2};
+        assign alu_result = {31'b0, alu_in_1 != alu_in_2};
       end
     endcase
   end
