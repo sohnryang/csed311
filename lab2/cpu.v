@@ -109,7 +109,7 @@ module cpu (
 
   // ---------- ALU Control Unit ----------
   alu_control_unit alu_ctrl_unit (
-    .part_of_inst({inst[31:25], instruction[14:12], instruction[6:0]}),  // input
+    .part_of_inst({instruction[31:25], instruction[14:12], instruction[6:0]}),  // input
     .alu_op(alu_operation)         // -> ALU.ALU_OP
   );
 
@@ -118,14 +118,14 @@ module cpu (
     .alu_op(alu_operation),      // ALU_CTRL_UNIT.ALU_OP ->
     .alu_in_1(reg_file_read_dout1),    // REG_FILE.RS1_DOUT -> 
     .alu_in_2(alu_in2_input),    // MUX_ALU_IN2_SELECT.MUX_OUT -> 
-    .alu_result(alu_output),  // -> MUX_ALU_ADDRESS_SELECT.MUX_IN_1, -> DMEM.ADDR, -> MUX_DMEM_OUT_SELECT.MUX_IN_0, -> MUX_BRANCH_SELECT.SEL (as LSB)
+    .alu_result(alu_output)  // -> MUX_ALU_ADDRESS_SELECT.MUX_IN_1, -> DMEM.ADDR, -> MUX_DMEM_OUT_SELECT.MUX_IN_0, -> MUX_BRANCH_SELECT.SEL (as LSB)
   );
 
   // ---------- Data Memory ----------
   data_memory dmem(
     .reset (reset),      // input
     .clk (clk),        // input
-    .addr (alu_result),       // ALU.ALU_RESULT -> 
+    .addr (alu_output),       // ALU.ALU_RESULT -> 
     .din (reg_file_read_dout2),   // REG_FILE.RS2_DOUT -> 
     .mem_read (control_unit_output[`CONTROL_MEM_READ]),   // CTRL_UNIT -> 
     .mem_write (control_unit_output[`CONTROL_MEM_WRITE]),  // CTRL_UNIT ->
@@ -147,7 +147,7 @@ module cpu (
   );
 
   mux32bit mux_dmem_out_select(
-    .mux_in_0(alu_result),  // ALU.ALU_RESULT -> 
+    .mux_in_0(alu_output),  // ALU.ALU_RESULT -> 
     .mux_in_1(dmem_output), // DMEM.DOUT -> 
     .sel(control_unit_output[`CONTROL_MEM_TO_REG]), // CTRL_UNIT ->
     .mux_out(mux_dmem_output) // -> MUX_REGISTER_WRITE_DATA_SELECT.MUX_IN_0
@@ -169,7 +169,7 @@ module cpu (
   mux32bit adder_offset_pc_address_adder_in_1_determine(
     .mux_in_0(imm_gen_output_type_b), // (@ Branch) IMM_GEN.B_IMM ->
     .mux_in_1(imm_gen_output_type_j), // (@ JAL) IMM_GEN.J_IMM ->
-    .sel(control_unit[`CONTROL_JAL]), // CTRL_UNIT -> 
+    .sel(control_unit_output[`CONTROL_JAL]), // CTRL_UNIT -> 
     .mux_out(adder_offset_pc_address_adder_in_1)  // -> ADDER_OFFSET_PC_ADDRESS.ADDER_IN_1
   );
 
