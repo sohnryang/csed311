@@ -19,3 +19,4 @@
 | 10   | ALU_EQ   | `a == b`             |
 | 11   | ALU_NE   | `a != b`             |
 
+ALU_SLT, ALU_SLTU, ALU_EQ, ALU_NE는 LSB에 1비트 연산 결과를 출력하고, 나머지 비트는 0으로 출력한다.
