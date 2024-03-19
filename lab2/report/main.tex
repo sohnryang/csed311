@@ -1,0 +1,108 @@
+\documentclass{scrartcl}
+\usepackage[margin=3cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{blindtext}
+\usepackage{datetime}
+\usepackage{fontspec}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{kotex}
+\usepackage[lighttt]{lmodern}
+\usepackage{listings}
+\usepackage{mathrsfs}
+\usepackage{mathtools}
+\usepackage{pgf,tikz,pgfplots}
+
+\pgfplotsset{compat=1.15}
+\usetikzlibrary{arrows}
+\newtheorem{theorem}{Theorem}
+
+\lstset{
+  numbers=none, frame=single, showspaces=false,
+  showstringspaces=false, showtabs=false, breaklines=true, showlines=true,
+  breakatwhitespace=true, basicstyle=\ttfamily, keywordstyle=\bfseries, basewidth=0.5em
+}
+
+\setmainhangulfont{Noto Serif CJK KR}[
+  UprightFont=* Light, BoldFont=* Bold,
+  Script=Hangul, Language=Korean, AutoFakeSlant,
+]
+\setsanshangulfont{Noto Sans CJK KR}[
+  UprightFont=* DemiLight, BoldFont=* Medium,
+  Script=Hangul, Language=Korean
+]
+\setmathhangulfont{Noto Sans CJK KR}[
+  SizeFeatures={
+    {Size=-6,  Font=* Medium},
+    {Size=6-9, Font=*},
+    {Size=9-,  Font=* DemiLight},
+  },
+  Script=Hangul, Language=Korean
+]
+\title{CSED311: Lab 2 (due Mar. 26)}
+\author{김태연(20220140), 손량(20220323)}
+\date{Last compiled on: \today, \currenttime}
+
+\newcommand{\un}[1]{\ensuremath{\ \mathrm{#1}}}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+RISC-V architecture를 바탕으로 구성된 Single cycle CPU가 작동하는 방식을 알아보고,
+각 Instruction type에 따라 거치는 Datapath에 유의하며 CPU를 구성하는 각 module을
+연결하여 Single cycle CPU를 구현한다.
+
+\section{Design}
+이번에 구현한 RISC-V Single cycle CPU는 다음과 같은 Submodule로 나누어서 설계하였다.
+
+\subsection{ALU}
+
+\subsection{Register file}
+
+\subsection{Data memory}
+
+\subsection{Instruction memory}
+
+\section{Implementation}
+
+각 베릴로그 파일에 대한 설명은 다음과 같다.
+
+\subsection{\texttt{cpu.v} -- 내부적인 Module을 연결하여 CPU 구성}
+
+\subsection{\texttt{cpu\_def.v} -- CPU control unit을 위한 상수 정의}
+
+\subsection{\texttt{opcodes.v} -- CPU instruction set에 대응되는 상수 정의}
+
+\subsection{\texttt{control\_unit.v} -- Instruction으로부터 CPU control signal 생성}
+
+\subsection{\texttt{register\_file.v} -- Register file 구현}
+
+\subsection{\texttt{instruction\_memory.v} -- Instruction memory 구현}
+
+\subsection{\texttt{data\_memory.v} -- Data memory 구현}
+
+\subsection{\texttt{alu.v} -- ALU 동작 구현}
+
+\subsection{\texttt{alu\_def.v} -- ALU 구성을 위한 상수 정의}
+
+\subsection{\texttt{alu\_control\_unit.v} -- Instruction과 ALU opcode 대응}
+
+\subsection{\texttt{immediate\_generator.v} -- Instruction type 별 immediate value 생성}
+
+\subsection{\texttt{pc.v} -- Program Counter 동작 구현}
+
+\subsection{\texttt{adder32bit.v} -- 내부적인 Adder 동작 구현}
+
+\subsection{\texttt{mux32bit.v} -- 내부적인 Multiplexer 동작 구현}
+
+\subsection{\texttt{top.v} -- Top module}
+
+\section{Discussion}
+
+\section{Conclusion}
+
+\end{document}
+% vim: textwidth=79
