@@ -10,4 +10,6 @@
 `define ALU_AND 4'b1001
 `define ALU_EQ 4'b1010
 `define ALU_NE 4'b1011
+`define ALU_GE 4'b1100
+`define ALU_GEU 4'b1101
 `define ALU_ERR 4'b1111
