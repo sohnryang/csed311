@@ -3,7 +3,7 @@ module mux32bit (
     input [31:0] mux_in_1,
     input sel,
 
-    output [31:0] mux_out
+    output reg [31:0] mux_out
 );
   always @(*) begin
     if (sel == 1'b0) begin

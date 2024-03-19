@@ -19,7 +19,6 @@ module alu_control_unit (
             else if (func7 == `FUNCT7_OTHERS) alu_op = `ALU_ADD;
             else alu_op = `ALU_ERR;
           end
-          `FUNCT3_SUB: alu_op = `ALU_SUB;
           `FUNCT3_SLL: alu_op = `ALU_SLL;
           `FUNCT3_SLT: alu_op = `ALU_SLT;
           `FUNCT3_SLTU: alu_op = `ALU_SLTU;
