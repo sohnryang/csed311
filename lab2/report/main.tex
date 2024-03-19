@@ -58,7 +58,47 @@ RISC-V architecture를 바탕으로 구성된 Single cycle CPU가 작동하는 �
 \section{Design}
 이번에 구현한 RISC-V Single cycle CPU는 다음과 같은 Submodule로 나누어서 설계하였다.
 
+\subsection{ALU}
+
+\subsection{Register file}
+
+\subsection{Data memory}
+
+\subsection{Instruction memory}
+
 \section{Implementation}
+
+각 베릴로그 파일에 대한 설명은 다음과 같다.
+
+\subsection{\texttt{cpu.v} -- 내부적인 Module을 연결하여 CPU 구성}
+
+\subsection{\texttt{cpu\_def.v} -- CPU control unit을 위한 상수 정의}
+
+\subsection{\texttt{opcodes.v} -- CPU instruction set에 대응되는 상수 정의}
+
+\subsection{\texttt{control\_unit.v} -- Instruction으로부터 CPU control signal 생성}
+
+\subsection{\texttt{register\_file.v} -- Register file 구현}
+
+\subsection{\texttt{instruction\_memory.v} -- Instruction memory 구현}
+
+\subsection{\texttt{data\_memory.v} -- Data memory 구현}
+
+\subsection{\texttt{alu.v} -- ALU 동작 구현}
+
+\subsection{\texttt{alu\_def.v} -- ALU 구성을 위한 상수 정의}
+
+\subsection{\texttt{alu\_control\_unit.v} -- Instruction과 ALU opcode 대응}
+
+\subsection{\texttt{immediate\_generator.v} -- Instruction type 별 immediate value 생성}
+
+\subsection{\texttt{pc.v} -- Program Counter 동작 구현}
+
+\subsection{\texttt{adder32bit.v} -- 내부적인 Adder 동작 구현}
+
+\subsection{\texttt{mux32bit.v} -- 내부적인 Multiplexer 동작 구현}
+
+\subsection{\texttt{top.v} -- Top module}
 
 \section{Discussion}
 
