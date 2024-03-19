@@ -25,15 +25,10 @@ module cpu (
 
   wire [31:0] register_write_data;
   wire [31:0] alu_in2_input;
-  wire [31:0] mux_alu_in_2_mux_in_1;
 
   wire [31:0] alu_output;
 
-  wire [31:0] imm_gen_output_type_i;
-  wire [31:0] imm_gen_output_type_s;
-  wire [31:0] imm_gen_output_type_b;
-  wire [31:0] imm_gen_output_type_u;
-  wire [31:0] imm_gen_output_type_j;
+  wire [31:0] imm_gen_output;
 
   wire [31:0] dmem_output;
 
@@ -44,7 +39,6 @@ module cpu (
   wire [31:0] current_pc_address;
   wire [31:0] next_pc_address;
   wire [31:0] adjacent_pc_address;
-  wire [31:0] adder_offset_pc_address_adder_in_1;
   wire [31:0] added_offset_pc_address;
   wire [31:0] branch_determined_pc_address;
 
@@ -99,12 +93,8 @@ module cpu (
 
   // ---------- Immediate Generator ----------
   immediate_generator imm_gen (
-      .inst(instruction),  // input
-      .i_imm(imm_gen_output_type_i),    // (@ I-Imm, Load, JALR) -> MUX_ALU_IN_2_SELECT.MUX_IN_1
-      .s_imm(imm_gen_output_type_s),    // (@ Store) -> MUX_ALU_IN_2_SELECT.MUX_IN_1
-      .b_imm(imm_gen_output_type_b),    // (@ Branch) -> ADDER_OFFSET_PC_ADDRESS.ADDER_IN_1
-      .u_imm(imm_gen_output_type_u),    // (@ Upper Immed.: Not using in given instruction set)
-      .j_imm(imm_gen_output_type_j)     // (@ JAL) -> ADDER_OFFSET_PC_ADDRESS.ADDER_IN_1
+      .inst(instruction),    // input
+      .imm (imm_gen_output)  // output
   );
 
   // ---------- ALU Control Unit ----------
@@ -141,7 +131,7 @@ module cpu (
 
   mux32bit mux_alu_in_2_select (
       .mux_in_0(reg_file_read_dout2),  // REG_FILE.RS2_DOUT -> 
-      .mux_in_1(mux_alu_in_2_mux_in_1),  // IMM_GEN.IMM_GEN_OUT -> 
+      .mux_in_1(imm_gen_output),  // IMM_GEN.IMM_GEN_OUT -> 
       .sel(control_unit_output[`CONTROL_ALU_SRC]),  // CTRL_UNIT -> 
       .mux_out(alu_in2_input)  // -> ALU.ALU_IN_2
   );
@@ -153,29 +143,15 @@ module cpu (
       .mux_out(mux_dmem_output)  // -> MUX_REGISTER_WRITE_DATA_SELECT.MUX_IN_0
   );
 
-  mux32bit mux_alu_in_2_mux_in_1_imm_determine (
-      .mux_in_0(imm_gen_output_type_i),  // (@ I-Imm, Load, JALR) IMM_GEN.I_IMM -> 
-      .mux_in_1(imm_gen_output_type_s),  // (@ Store) IMM_GEN.S_IMM -> 
-      .sel(control_unit_output[`CONTROL_MEM_WRITE]),  // CTRL_UNIT -> 
-      .mux_out(mux_alu_in_2_mux_in_1)  // -> MUX_ALU_IN_2_SELECT.MUX_IN_1
-  );
-
   adder32bit adder_adjacent_pc_address (
       .adder_in_0(current_pc_address),  // PC.CURRENT_PC ->
       .adder_in_1(32'h00000004),
       .adder_out(adjacent_pc_address) // -> MUX_BRANCH_SELECT.MUX_IN_0, -> MUX_REGISTER_FILE_SELECT
   );
 
-  mux32bit adder_offset_pc_address_adder_in_1_determine (
-      .mux_in_0(imm_gen_output_type_b),  // (@ Branch) IMM_GEN.B_IMM ->
-      .mux_in_1(imm_gen_output_type_j),  // (@ JAL) IMM_GEN.J_IMM ->
-      .sel(control_unit_output[`CONTROL_JAL]),  // CTRL_UNIT -> 
-      .mux_out(adder_offset_pc_address_adder_in_1)  // -> ADDER_OFFSET_PC_ADDRESS.ADDER_IN_1
-  );
-
   adder32bit adder_offset_pc_address (
       .adder_in_0(current_pc_address),  // PC.CURRENT_PC -> 
-      .adder_in_1(adder_offset_pc_address_adder_in_1), // ADDER_OFFSET_PC_ADDRESS_ADDER_IN_1_DETERMINE.MUX_OUT
+      .adder_in_1(imm_gen_output),  // IMM_GEN.IMM_GEN_OUT ->
       .adder_out(added_offset_pc_address)  // -> MUX_BRANCH_SELECT.MUX_IN_1
   );
 
