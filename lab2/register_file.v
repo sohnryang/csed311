@@ -8,6 +8,7 @@ module register_file (
     input         write_enable,       // RegWrite signal
     output [31:0] rs1_dout,           // output of rs 1
     output [31:0] rs2_dout,           // output of rs 2
+    output [31:0] x17_out,            // value of x17 register
     output [31:0] print_reg   [0:31]
 );
   integer i;
@@ -18,6 +19,7 @@ module register_file (
 
   assign rs1_dout  = rf[rs1];
   assign rs2_dout  = rf[rs2];
+  assign x17_out   = rf[17];
 
   always @(posedge clk) begin
     if (write_enable && rd != 5'b0) rf[rd] <= rd_din;
