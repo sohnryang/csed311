@@ -20,7 +20,7 @@ module register_file (
   assign rs2_dout  = rf[rs2];
 
   always @(posedge clk) begin
-    if (write_enable) rf[rd] <= rd_din;
+    if (write_enable && rd != 5'b0) rf[rd] <= rd_din;
   end
 
   // Initialize register file (do not touch)
