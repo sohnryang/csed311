@@ -5,12 +5,14 @@
 #include <verilated_vcd_c.h>
 
 #include <iostream>
+#include <fstream>
+#include <iomanip>
 #include <stdlib.h>
 #include <string>
 using namespace std;
 #include "Vtop.h"
 
-#define MAX_SIM_TIME 300
+#define MAX_SIM_TIME 10000
 int sim_time = 0;
 int total_cycle = 0;
 
@@ -25,6 +27,12 @@ void next_cycle(Vtop* dut, VerilatedVcdC* m_trace) {
 }
 
 int main(int argc, char** argv, char** env) {
+    // TO DO : CHANGE "filename" TO PROVIDED "answer_*.txt" PATH
+    string filename = "path_to_answer_*.txt";
+    ifstream file(filename);
+    stringstream ss;
+    string reg_hex;
+
     Verilated::commandArgs(argc, argv);
     Vtop* dut = new Vtop;
 
@@ -57,15 +65,35 @@ int main(int argc, char** argv, char** env) {
         if (dut->is_halted == 1) break;
     }
 
-    printf("TEST END\n");
-    printf("SIM TIME : %d\n", sim_time);
-    printf("TOTAL CYCLE : %d\n", total_cycle);
-    printf("FINAL REGISTER OUTPUT\n");
-    for (int i = 0; i < 32; i = i + 1)
-        printf("%2d %08x\n", i, dut->print_reg[i]);
+    int answer_cycle;
+    string answer_reg;
+    int correct_count = 0;
+    file >> answer_cycle;
+
+    cout << "TEST END" << endl;
+    cout << "SIM TIME : " << sim_time << endl;
+    cout << "TOTAL CYCLE : " << total_cycle << " (Answer : " << answer_cycle << ")" << endl;
+    cout << "FINAL REGISTER OUTPUT" << endl;
+    for (int i = 0; i < 32; i = i + 1) {
+        ss << setw(8) << setfill('0') << hex << dut->print_reg[i];
+        reg_hex = ss.str();
+        ss.str("");
+
+        file >> answer_reg;
+        cout << setw(2) << i << " " << reg_hex;
+
+        if (reg_hex == answer_reg) {
+            cout << endl;
+            correct_count++;
+        }
+        else {
+            cout << " (Wrong)" << endl;
+        }
+    }
+    cout << "Correct output : " << correct_count << "/32" << endl;
 
     m_trace->close();
-
+    file.close();
     delete dut;
     exit(0);
 }
