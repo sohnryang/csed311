@@ -35,7 +35,7 @@ module alu_control_unit (
       end
       `ARITHMETIC_IMM: begin
         case (func3)
-          `FUNCT3_ADD_SUB: alu_op = `ALU_SUB;
+          `FUNCT3_ADD_SUB: alu_op = `ALU_ADD;
           `FUNCT3_SLT: alu_op = `ALU_SLT;
           `FUNCT3_SLTU: alu_op = `ALU_SLTU;
           `FUNCT3_XOR: alu_op = `ALU_XOR;
