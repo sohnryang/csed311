@@ -41,6 +41,7 @@ module cpu (
   wire [31:0] adjacent_pc_address;
   wire [31:0] added_offset_pc_address;
   wire [31:0] branch_determined_pc_address;
+  wire [31:0] x17_out;
 
   /***** Register declarations *****/
 
@@ -72,6 +73,7 @@ module cpu (
       .write_enable(control_unit_output[`CONTROL_REG_WRITE]),  // CTRL_UNIT -> 
       .rs1_dout(reg_file_read_dout1),  // -> ALU.ALU_IN_1
       .rs2_dout(reg_file_read_dout2),  // -> DMEM.DIN, -> MUX_ALU_IN_2_SELECT.MUX_IN_0
+      .x17_out(x17_out),  // -> ECALL_UNIT.X17_VALUE
       .print_reg(print_reg)  //DO NOT TOUCH THIS
   );
 
@@ -89,6 +91,14 @@ module cpu (
       .write_enable(control_unit_output[`CONTROL_REG_WRITE]),  // -> REG_FILE.WRITE_ENABLE
       .pc_to_reg(control_unit_output[`CONTROL_PC_TO_REG]),     // -> MUX_REGISTER_WRITE_DATA_SELECT.SEL
       .is_ecall(control_unit_output[`CONTROL_IS_ECALL])  // output (ecall inst)
+  );
+
+  // ---------- Ecall Unit ----------
+  ecall_unit ec_unit (
+      .enable(control_unit_output[`CONTROL_IS_ECALL]),
+      .func12(instruction[31:20]),
+      .x17_value(x17_out),
+      .is_halted(is_halted)
   );
 
   // ---------- Immediate Generator ----------
