@@ -21,7 +21,7 @@ module control_unit (
     mem_read = part_of_inst == `LOAD;
     mem_to_reg = part_of_inst == `LOAD;
     mem_write = part_of_inst == `STORE;
-    alu_src = part_of_inst == `ARITHMETIC_IMM;
+    alu_src = part_of_inst == `ARITHMETIC_IMM || part_of_inst == `STORE || part_of_inst == `LOAD;
     write_enable = part_of_inst == `JAL || part_of_inst == `JALR || part_of_inst == `LOAD || part_of_inst == `ARITHMETIC || part_of_inst == `ARITHMETIC_IMM;
     pc_to_reg = part_of_inst == `JAL || part_of_inst == `JALR;
     is_ecall = part_of_inst == `ECALL;

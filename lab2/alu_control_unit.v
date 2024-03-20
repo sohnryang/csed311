@@ -61,6 +61,8 @@ module alu_control_unit (
           default: alu_op = `ALU_ERR;
         endcase
       end
+      `STORE:  alu_op = `ALU_ADD;
+      `LOAD:   alu_op = `ALU_ADD;
       default: alu_op = `ALU_ERR;
     endcase
   end
