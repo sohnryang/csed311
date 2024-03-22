@@ -145,7 +145,7 @@ Vivado Xilinix를 통해 만들어진 Schematic을 첨부하였다.
     \item \texttt{mux\_dmem\_out\_select} -- Multiplexer로, Write Back 단계에 사용할 출력으로 ALU의 출력 혹은 Data memory의 출력을 선택한다.
     \item \texttt{adder\_adjacent\_pc\_address} -- 인접한 다음 PC (PC + 4)를 계산하기 위해 존재하는 32bit adder이다. 두 번째 입력은 4로 고정되어있다.
     \item \texttt{adder\_offset\_pc\_address} -- 현재 PC의 주소에서 immediate generator에서 생성한 immediate value만큼 떨어진 address를 계산하는 32bit adder이다.
-    \item \texttt{mux\_branch\_select} -- Branch condiiton과 Branch instruction인지 판단하여 다음 PC address를 결정하는 Multiplexer이다.
+    \item \texttt{mux\_branch\_select} -- Branch conditon과 Branch instruction인지 판단하여 다음 PC address를 결정하는 Multiplexer이다.
     \item \texttt{mux\_alu\_address\_select} -- \texttt{JAL} 및 \texttt{Bxx}, \texttt{JALR} operation에 따라 다음 PC address를 결정하는 Multiplexer이다.
 \end{itemize}
 
@@ -216,16 +216,28 @@ operation에 들어갈 상수를 정의하였으며, 다음과 같다.
 \end{center}
 
 \subsection{\texttt{alu\_control\_unit.v} -- Instruction과 ALU opcode 대응}
+입력받은 Instruction에서 요하는 ALU의 기능에 해당하는 ALU opcode를 반환하기 위한 ALU Control Unit이며,
+각 Instruction 타입에 따라 ALU에 입력되는 \texttt{opcode}가 달라지도록 설계했다.
+
+\begin{itemize}
+  \item Arithmetic instruction -- 각 Instruction에 해당하는 Arithmetic operation으로 \texttt{alu\_op}를 결정한다.
+  \item Branch -- Branch condition에 해당하는 논리 연산을 진행하도록 \texttt{alu\_op}를 결정한다.
+  \item Load / Store -- \texttt{ALU\_ADD}를 사용하여 주어진 Offset으로
+  \item 이외의 경우 -- \texttt{ALU\_ERR}을 사용해 Debugging을 진행하였다.
+\end{itemize}
 
 \subsection{\texttt{immediate\_generator.v} -- Instruction type 별 immediate value 생성}
 
 \subsection{\texttt{pc.v} -- Program Counter 동작 구현}
 
 \subsection{\texttt{adder32bit.v} -- 내부적인 Adder 동작 구현}
+32bit integer 2개를 입력받아 더한 값을 반환한다. 다음 PC를 계산하기 위해 사용된다.
 
 \subsection{\texttt{mux32bit.v} -- 내부적인 Multiplexer 동작 구현}
+32bit integer 2개 중 하나의 값을 \texttt{sel} 신호에 따라 선택하여 반환하는 Multiplexer이다.
 
 \subsection{\texttt{top.v} -- Top module}
+\texttt{cpu.v}에서 구현한 \texttt{cpu} 모듈을 사용하여 최종적으로 Single cycle CPU를 구현하였다.
 
 \section{Discussion}
 
