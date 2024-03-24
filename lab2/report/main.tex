@@ -183,9 +183,18 @@ Instruction의 \texttt{opcode} 부분을 판단하여 operation을 특정하기 
     \item \texttt{\$x17} Register는 \texttt{ecall} 처리 후 \texttt{is\_halted}을 설정하는데
     사용되게 되며, 이를 위해 추가적으로 해당 \texttt{\$x17} 레지스터만을 출력하는 wire를 가지고 있다. 
 \end{itemize}
+
 \subsection{\texttt{instruction\_memory.v} -- Instruction memory 구현}
+Instruction memory를 구현한 모듈이다. 이 lab에서는 instruction memory가 read
+only라고 가정했기 때문에, \texttt{addr} 핀에 주소를 입력하면 \texttt{dout} 핀으
+로 32비트 명령어를 출력하도록 하였다.
 
 \subsection{\texttt{data\_memory.v} -- Data memory 구현}
+Data memory를 구현한 모듈이다. 이 lab에서는 data memory는 write도 가능하기 때문
+에, \texttt{mem\_read}, \texttt{mem\_write} 핀을 따로 두어 read와 write를 제어할
+수 있도록 구현하였다. \texttt{mem\_read}가 1일 때에는 \texttt{dout} 핀으로 주어
+진 주소에서 word를 읽어 출력하고, \texttt{mem\_write}가 1일 때에는 \texttt{din}
+핀으로 주어진 주소에 word를 쓴다.
 
 \subsection{\texttt{alu.v} -- ALU 동작 구현}
 연산을 선택하기 위한 \texttt{alu\_op}에 따라 두 개의 32bit 입력에 해당하는 연산 결과를 \texttt{alu\_result}에 반환한다.
@@ -227,8 +236,13 @@ operation에 들어갈 상수를 정의하였으며, 다음과 같다.
 \end{itemize}
 
 \subsection{\texttt{immediate\_generator.v} -- Instruction type 별 immediate value 생성}
+Instruction이 \texttt{inst}로 주어질 때 opcode, func3 값을 통해 immediate value
+를 생성해 \texttt{imm} 핀으로 출력하도록 구현하였다.
 
 \subsection{\texttt{pc.v} -- Program Counter 동작 구현}
+PC 값을 저장하고 관리하기 위한 모듈이다. 이 모듈은 각 positive clock edge마다
+\texttt{next\_pc} 핀으로 다음 PC 값을 받아 \texttt{current\_pc} 레지스터를 업데
+이트해준다.
 
 \subsection{\texttt{adder32bit.v} -- 내부적인 Adder 동작 구현}
 32bit integer 2개를 입력받아 더한 값을 반환한다. 다음 PC를 계산하기 위해 사용된다.
@@ -240,8 +254,13 @@ operation에 들어갈 상수를 정의하였으며, 다음과 같다.
 \texttt{cpu.v}에서 구현한 \texttt{cpu} 모듈을 사용하여 최종적으로 Single cycle CPU를 구현하였다.
 
 \section{Discussion}
+이로써 RV32I base instruction set의 대부분을 구현한 single-cycle CPU를 완성할 수
+있었다. 이 single-cycle CPU는 single cycle 안에 instruction/data fetch가 일어난
+다는 비현실적인 가정 하에서 구현되었는데, DDR3 AXI interconnect 등을 구현해 실제
+FPGA 상에서 CPU를 구동해 보는 것도 좋을 것이라 생각한다.
 
 \section{Conclusion}
+주어진 testbench 파일들이 테스트를 통과함을 확인할 수 있었다.
 
 \end{document}
 % vim: textwidth=79
