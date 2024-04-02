@@ -72,7 +72,7 @@ module cpu (
   mux32bit_2x1 memory_addr_mux(
     .mux_in_0(pc_current_pc),               // pc.current_pc -> 
     .mux_in_1(ALUOut),                      // ALUOut ->
-    .sel(ctrl_unit_data_read),              // ctrl_unit.data_read ->
+    .sel(ctrl_unit_data_access),              // ctrl_unit.data_access ->
     .mux_out(memory_addr_mux_mux_out)       // -> memory.addr
   )
 
@@ -85,7 +85,7 @@ module cpu (
   wire ctrl_unit_pc_source;
   wire ctrl_unit_pc_write_not_cond;
   wire ctrl_unit_pc_write;
-  wire ctrl_unit_data_read;
+  wire ctrl_unit_data_access;
   wire ctrl_unit_mem_read;
   wire ctrl_unit_mem_write;
   wire ctrl_unit_mem_to_reg;
@@ -101,7 +101,7 @@ module cpu (
       .pc_source(ctrl_unit_pc_source),
       .pc_write_not_cond(ctrl_unit_pc_write_not_cond),
       .pc_write(ctrl_unit_pc_write),
-      .data_read(ctrl_unit_data_read),
+      .data_access(ctrl_unit_data_access),
       .mem_read(ctrl_unit_mem_read),
       .mem_write(ctrl_unit_mem_write),
       .mem_to_reg(ctrl_unit_mem_to_reg),
