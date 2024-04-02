@@ -30,7 +30,7 @@ module cpu (
   PC pc (
       .reset     (reset),           // input (Use reset to initialize PC. Initial value must be 0)
       .clk       (clk),             // input
-      .next_pc   (),                // input
+      .next_pc   (pc_source_mux_mux_out),                // pc_source_mux.mux_out ->
       .current_pc(pc_current_pc)    // output
   );
 
@@ -154,4 +154,12 @@ module cpu (
     .mux_out(alu_in_2_mux_mux_out)      // -> alu.alu_in_2
   );
 
+  // ----- PC Source Determine -----
+  wire [31:0] pc_source_mux_mux_out;
+  mux32bit_2x1 pc_source_mux(
+    .mux_in_0(alu_alu_result),
+    .mux_in_1(ALUOut),
+    .sel(ctrl_unit_pc_source),
+    .mux_out(pc_source_mux_mux_out)
+  );
 endmodule
