@@ -15,8 +15,8 @@
 | State | Action                                                       |
 | ----- | ------------------------------------------------------------ |
 | IF    | instruction fetch, set PC to PC+4                            |
-| ID    | instruction decode (op1 = rs1, op2 = rs2), set ALU reg to PC + imm |
-| EX    | set ALU reg to ALU result (calculate)                        |
+| ID    | instruction decode, set ALU reg to PC + imm                  |
+| EX    | calculate using rs1, rs2 and set ALU reg to ALU result (calculate) |
 | MEM   | pass                                                         |
 | WB    | save ALU reg to register file                                |
 
@@ -27,8 +27,8 @@
 | State | Action                                                       |
 | ----- | ------------------------------------------------------------ |
 | IF    | instruction fetch, set PC to PC+4                            |
-| ID    | instruction decode (op1 = rs1, op2 = imm), set ALU reg to PC + imm |
-| EX    | set ALU reg to ALU result (calculate)                        |
+| ID    | instruction decode, set ALU reg to PC + imm                  |
+| EX    | calculate using rs1, imm and set ALU reg to ALU result (calculate) |
 | MEM   | pass                                                         |
 | WB    | save ALU reg to register file                                |
 
@@ -37,8 +37,8 @@
 | State | Action                                                       |
 | ----- | ------------------------------------------------------------ |
 | IF    | instruction fetch, set PC to PC+4                            |
-| ID    | instruction decode (op1 = rs1, op2 = imm), set ALU reg to PC + imm |
-| EX    | set ALU reg to ALU result (memory address)                   |
+| ID    | instruction decode, set ALU reg to PC + imm                  |
+| EX    | calculate using rs1, imm and set ALU reg to ALU result (memory address) |
 | MEM   | save memory data to memory data reg                          |
 | WB    | save memory data reg to register file                        |
 
@@ -47,8 +47,8 @@
 | State | Action                                                       |
 | ----- | ------------------------------------------------------------ |
 | IF    | instruction fetch, set PC to PC+4                            |
-| ID    | instruction decode (op1 = rs1, op2 = imm), set ALU reg to PC + imm |
-| EX    | set ALU reg to ALU result (memory address)                   |
+| ID    | instruction decode, set ALU reg to PC + imm                  |
+| EX    | calculate using rs1, imm and set ALU reg to ALU result (memory address) |
 | MEM   | save rs2 to address in ALU reg                               |
 | WB    | pass                                                         |
 
@@ -57,8 +57,8 @@
 | State | Action                                                       |
 | ----- | ------------------------------------------------------------ |
 | IF    | instruction fetch, set PC to PC+4                            |
-| ID    | instruction decode (op1 = rs1, op2 = imm), set ALU reg to PC + imm |
-| EX    | check branch condition, set PC according to condition        |
+| ID    | instruction decode, set ALU reg to PC + imm                  |
+| EX    | check branch condition using rs1, rs2 and set PC according to condition |
 | MEM   | pass                                                         |
 | WB    | pass                                                         |
 
@@ -66,20 +66,20 @@
 
 #### JAL
 
-| State | Action                                                       |
-| ----- | ------------------------------------------------------------ |
-| IF    | instruction fetch, set PC to PC+4                            |
-| ID    | instruction decode (op1 = rs1, op2 = imm), set ALU reg to PC + imm |
-| EX    | set PC to ALU reg                                            |
-| MEM   | pass                                                         |
-| WB    | save PC+4 to register file                                   |
+| State | Action                                      |
+| ----- | ------------------------------------------- |
+| IF    | instruction fetch, set PC to PC+4           |
+| ID    | instruction decode, set ALU reg to PC + imm |
+| EX    | set PC to ALU reg                           |
+| MEM   | pass                                        |
+| WB    | save PC+4 to register file                  |
 
 #### JALR
 
-| State | Action                                                       |
-| ----- | ------------------------------------------------------------ |
-| IF    | instruction fetch, set PC to PC+4                            |
-| ID    | instruction decode (op1 = rs1, op2 = imm), set ALU reg to PC + imm |
-| EX    | save ALU output to PC                                        |
-| MEM   | pass                                                         |
-| WB    | save PC+4 to register file                                   |
+| State | Action                                      |
+| ----- | ------------------------------------------- |
+| IF    | instruction fetch, set PC to PC+4           |
+| ID    | instruction decode, set ALU reg to PC + imm |
+| EX    | add rs1, imm and save ALU output to PC      |
+| MEM   | pass                                        |
+| WB    | save PC+4 to register file                  |
