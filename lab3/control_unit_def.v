@@ -7,3 +7,7 @@
 `define CTRL_EX_STAGE 3'd2
 `define CTRL_MEM_STAGE 3'd3
 `define CTRL_WB_STAGE 3'd4
+
+`define CTRL_WB_ALU_REG 2'd0;
+`define CTRL_WB_MEM 2'd1;
+`define CTRL_WB_ALU_DIRECT 2'd2;
