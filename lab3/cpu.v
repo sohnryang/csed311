@@ -25,6 +25,7 @@ module cpu (
 
   // ---------- Update program counter ----------
   wire [31:0] pc_current_pc;
+  wire [31:0] pc_next_temp_pc;
   // PC must be updated on the rising edge (positive edge) of the clock.
   pc pc_mod (
       .reset(reset),  // input (Use reset to initialize PC. Initial value must be 0)
@@ -32,7 +33,8 @@ module cpu (
       .next_pc(pc_source_mux_mux_out),  // pc_source_mux.mux_out ->
       .pc_write(ctrl_unit_pc_write | (ctrl_unit_pc_write_cond & alu_alu_result[0])),
       .pc_commit(ctrl_unit_pc_commit),
-      .current_pc(pc_current_pc)  // output
+      .current_pc(pc_current_pc),  // output
+      .next_temp_pc(pc_next_temp_pc)
   );
 
   // ---------- Register File ----------
