@@ -10,4 +10,4 @@
 
 `define CTRL_WB_ALU_REG 2'd0;
 `define CTRL_WB_MEM 2'd1;
-`define CTRL_WB_ALU_DIRECT 2'd2;
+`define CTRL_WB_PC_NEXT_TEMP 2'd2;

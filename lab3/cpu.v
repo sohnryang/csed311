@@ -69,7 +69,7 @@ module cpu (
   mux32bit_4x1 reg_file_write_data_mux (
       .mux_in_0(ALUOut),                          // ALUOut ->
       .mux_in_1(MDR),                             // MDR ->
-      .mux_in_2(alu_alu_result),
+      .mux_in_2(pc_next_temp_pc),
       .mux_in_3(32'b0),
       .sel     (ctrl_unit_wb_sel),                // ctrl_unit.mem_to_reg
       .mux_out (reg_file_write_data_mux_mux_out)  // reg_file.rd_din

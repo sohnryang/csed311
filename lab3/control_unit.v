@@ -75,7 +75,7 @@ module control_unit (
 
         if (opcode == `JAL || opcode == `JALR) begin
           regfile_write = 1;
-          wb_sel = `CTRL_WB_ALU_DIRECT;
+          wb_sel = `CTRL_WB_PC_NEXT_TEMP;
         end else begin
           regfile_write = 0;
           wb_sel = 2'b0;
