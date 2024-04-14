@@ -24,6 +24,7 @@ module control_unit (
     output reg [1:0] wb_sel,
     output reg pc_write_cond,
     output reg pc_write,
+    output reg pc_commit,
     output reg pc_from_alu_reg
 );
   reg [2:0] state;
@@ -48,6 +49,7 @@ module control_unit (
         wb_sel = 2'b0;
         pc_write_cond = 0;
         pc_write = 1;
+        pc_commit = 0;
         pc_from_alu_reg = 0;
 
         next_state = `CTRL_ID_STAGE;
@@ -68,6 +70,7 @@ module control_unit (
         mem_reg_write = 0;
         pc_write_cond = 0;
         pc_write = 0;
+        pc_commit = 0;
         pc_from_alu_reg = 0;
 
         if (opcode == `JAL || opcode == `JALR) begin
@@ -100,6 +103,7 @@ module control_unit (
             alu_op_from_inst = 1;
             alu_op = `ALU_ADD;
             pc_write = 0;
+            pc_commit = 0;
             pc_write_cond = 0;
             pc_from_alu_reg = 0;
             next_state = `CTRL_WB_STAGE;
@@ -111,6 +115,7 @@ module control_unit (
             alu_op_from_inst = 1;
             alu_op = `ALU_ADD;
             pc_write = 0;
+            pc_commit = 0;
             pc_write_cond = 0;
             pc_from_alu_reg = 0;
             next_state = `CTRL_WB_STAGE;
@@ -122,6 +127,7 @@ module control_unit (
             alu_op_from_inst = 0;
             alu_op = `ALU_ADD;
             pc_write = 0;
+            pc_commit = 0;
             pc_write_cond = 0;
             pc_from_alu_reg = 0;
             next_state = `CTRL_MEM_STAGE;
@@ -133,6 +139,7 @@ module control_unit (
             alu_op_from_inst = 0;
             alu_op = `ALU_ADD;
             pc_write = 1;
+            pc_commit = 0;
             pc_write_cond = 0;
             pc_from_alu_reg = 0;
             next_state = `CTRL_WB_STAGE;
@@ -144,6 +151,7 @@ module control_unit (
             alu_op_from_inst = 0;
             alu_op = `ALU_ADD;
             pc_write = 0;
+            pc_commit = 1;
             pc_write_cond = 0;
             pc_from_alu_reg = 0;
             next_state = `CTRL_MEM_STAGE;
@@ -155,6 +163,7 @@ module control_unit (
             alu_op_from_inst = 1;
             alu_op = `ALU_ADD;
             pc_write = 0;
+            pc_commit = 1;
             pc_write_cond = 1;
             pc_from_alu_reg = 1;
             next_state = `CTRL_IF_STAGE;
@@ -166,9 +175,22 @@ module control_unit (
             alu_op_from_inst = 0;
             alu_op = 4'b0;
             pc_write = 1;
+            pc_commit = 0;
             pc_write_cond = 0;
             pc_from_alu_reg = 1;
             next_state = `CTRL_WB_STAGE;
+          end
+          `ECALL: begin
+            op1_regfile = 0;
+            op2_sel = 2'b0;
+            alu_reg_write = 0;
+            alu_op_from_inst = 0;
+            alu_op = 4'b0;
+            pc_write = 0;
+            pc_commit = 1;
+            pc_write_cond = 0;
+            pc_from_alu_reg = 0;
+            next_state = `CTRL_IF_STAGE;
           end
           default: begin
             op1_regfile = 0;
@@ -177,6 +199,7 @@ module control_unit (
             alu_op_from_inst = 0;
             alu_op = 4'b0;
             pc_write = 0;
+            pc_commit = 0;
             pc_write_cond = 0;
             pc_from_alu_reg = 0;
             next_state = `CTRL_ID_STAGE;
@@ -201,6 +224,7 @@ module control_unit (
         wb_sel = 2'b0;
         pc_write_cond = 0;
         pc_write = 0;
+        pc_commit = 0;
         pc_from_alu_reg = 0;
 
         if (opcode == `STORE) next_state = `CTRL_IF_STAGE;
@@ -222,6 +246,7 @@ module control_unit (
         mem_reg_write = 0;
         pc_write_cond = 0;
         pc_write = 0;
+        pc_commit = 1;
         pc_from_alu_reg = 0;
 
         case (opcode)

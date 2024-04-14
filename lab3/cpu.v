@@ -31,6 +31,7 @@ module cpu (
       .clk(clk),  // input
       .next_pc(pc_source_mux_mux_out),  // pc_source_mux.mux_out ->
       .pc_write(ctrl_unit_pc_write | (ctrl_unit_pc_write_cond & alu_alu_result[0])),
+      .pc_commit(ctrl_unit_pc_commit),
       .current_pc(pc_current_pc)  // output
   );
 
@@ -116,6 +117,7 @@ module cpu (
   wire [1:0] ctrl_unit_wb_sel;
   wire ctrl_unit_pc_write_cond;
   wire ctrl_unit_pc_write;
+  wire ctrl_unit_pc_commit;
   wire ctrl_unit_pc_from_alu_reg;
 
   control_unit ctrl_unit (
@@ -138,6 +140,7 @@ module cpu (
       .wb_sel          (ctrl_unit_wb_sel),
       .pc_write_cond   (ctrl_unit_pc_write_cond),
       .pc_write        (ctrl_unit_pc_write),
+      .pc_commit       (ctrl_unit_pc_commit),
       .pc_from_alu_reg (ctrl_unit_pc_from_alu_reg)
   );
 
