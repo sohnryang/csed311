@@ -139,10 +139,10 @@ module control_unit (
             alu_op_from_inst = 0;
             alu_op = `ALU_ADD;
             pc_write = 1;
-            pc_commit = 0;
+            pc_commit = 1;
             pc_write_cond = 0;
             pc_from_alu_reg = 0;
-            next_state = `CTRL_WB_STAGE;
+            next_state = `CTRL_IF_STAGE;
           end
           `STORE: begin
             op1_regfile = 1;
@@ -175,10 +175,10 @@ module control_unit (
             alu_op_from_inst = 0;
             alu_op = 4'b0;
             pc_write = 1;
-            pc_commit = 0;
+            pc_commit = 1;
             pc_write_cond = 0;
             pc_from_alu_reg = 1;
-            next_state = `CTRL_WB_STAGE;
+            next_state = `CTRL_IF_STAGE;
           end
           `ECALL: begin
             op1_regfile = 0;
