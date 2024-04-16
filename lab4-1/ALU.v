@@ -1,6 +1,6 @@
 `include "alu_def.v"
 
-module alu (
+module ALU (
     input [ 3:0] alu_op,
     input [31:0] alu_in_1,
     input [31:0] alu_in_2,

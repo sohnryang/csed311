@@ -1,4 +1,4 @@
-module immediate_generator (
+module ImmediateGenerator (
     input [31:0] inst,
 
     output reg [31:0] imm
