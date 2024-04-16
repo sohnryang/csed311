@@ -1,7 +1,11 @@
-module InstMemory #(parameter MEM_DEPTH = 1024) (input reset,
-                                                 input clk,
-                                                 input [31:0] addr,   // address of the instruction memory
-                                                 output [31:0] dout); // instruction at addr
+module InstMemory #(
+    parameter MEM_DEPTH = 1024
+) (
+    input reset,
+    input clk,
+    input [31:0] addr,  // address of the instruction memory
+    output [31:0] dout
+);  // instruction at addr
   integer i;
   // Instruction memory
   reg [31:0] mem[0:MEM_DEPTH - 1];
@@ -16,15 +20,13 @@ module InstMemory #(parameter MEM_DEPTH = 1024) (input reset,
   always @(posedge clk) begin
     if (reset) begin
       for (i = 0; i < MEM_DEPTH; i = i + 1)
-          // DO NOT TOUCH COMMENT BELOW
-          /* verilator lint_off BLKSEQ */
-          mem[i] = 32'b0;
-          /* verilator lint_on BLKSEQ */
-          // DO NOT TOUCH COMMENT ABOVE
+      // DO NOT TOUCH COMMENT BELOW
+      /* verilator lint_off BLKSEQ */
+      mem[i] = 32'b0;
+      /* verilator lint_on BLKSEQ */
+      // DO NOT TOUCH COMMENT ABOVE
       // Provide path of the file including instructions with binary format
       $readmemh("./student_tb/non-controlflow_mem.txt", mem);
     end
   end
-
 endmodule
-
