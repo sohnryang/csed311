@@ -512,7 +512,7 @@ Instruction이 inst로 주어질 때 \texttt{opcode}, \texttt{func3} 값을 통�
 \texttt{imm}으로 출력하도록 구현하였다. 해당 동작은 Clock signal에 Asynchronous하게 작동한다.
 
 \subsection{\texttt{alu.v} -- ALU 동작 구현}
-Single-cycle CPU에서 사용한 ALU와 구조가 동일하다.
+Single-cycle CPU에서 사용한 ALU와 구조가 동일하며, Clock signal에 Asynchronous하게 동작하도록 구현하였다.
 연산을 선택하기 위한 \texttt{alu\_op}에 따라 두 개의 32bit 입력에 해당하는 연산 결과를 \texttt{alu\_result} 에 반환한다.
 산술 연산의 경우 32bit를 모두 사용하여 결과 값을 전달하였으며, 논리 연산의 경우 LSB 1bit에 해당 논리 연산의 결과를 반환하였다.
 \subsubsection{\texttt{alu\_def.v} -- ALU 구성을 위한 상수 정의}
@@ -542,14 +542,15 @@ Single-cycle CPU에서 사용한 ALU와 구조가 동일하다.
 \end{center}
 
 \subsection{\texttt{alu\_register.v} -- \texttt{ALUOut}을 위한 Clock 확보}
-ALU의 출력을 Clock signal에 맞추어 Skeleton code의 \texttt{ALUOut}에 전달한다. 현재 Cycle의 ALU result를 생성할 때
+ALU의 출력을 Clock signal에 Synchronous하게 Skeleton code의 \texttt{ALUOut}에 전달한다. 현재 Cycle의 ALU result를 생성할 때
 해당 \texttt{ALUOut}은 직전 Cycle의 ALU result를 저장하게 된다. 두 Output을 Control signal로 선택하여
 Program counter을 갱신하거나 Memory를 작성한다.
 
 \subsection{\texttt{alu\_control\_unit.v} -- Instruction과 ALU Opcode 대응}
 Single-cycle CPU에서 구현한 ALU Control Unit과 구현이 동일하다. 입력받은 Instruction에서 요하는
 ALU의 기능에 해당하는 ALU opcode를 반환하기 위한 ALU Control Unit이며, 각 Instruction 타입에 따라
-ALU에 입력되는 opcode가 달라지도록 설계했다.
+ALU에 입력되는 opcode가 달라지도록 설계했다. 기본적으로 Clock signal에 Asynchronous한 로직으로 동작하지만,
+Control unit에서 State별 Signal이 들어올 때만 작동한다.
 \begin{itemize}
   \item Arithmetic instruction -- 각 Instruction에 해당하는 Arithmetic operation으로 \texttt{alu\_op} 를 결정한다.
   \item Branch -- Branch condition에 해당하는 논리 연산을 진행하도록 \texttt{alu\_op}를 결정한다.
@@ -566,10 +567,61 @@ Instruction의 \texttt{opcode} 부분을 판단하여 operation을 특정하기 
 R-type 혹은 I-type instruction의 경우 \texttt{func3} 및 \texttt{func7} 부분에 대응되는 operation을 정의하여 사용하였다.
 
 \subsection{\texttt{mux32bit\_2x1.v} 및 \texttt{mux32bit\_4x1.v} -- Multiplexer 구현}
+32bit Signal들의 입력으로부터 출력을 선택하는 Multiplexer를 구현하여 사용하였다. Clock signal과 Asynchronous하게 작동한다.
+\section{Schematic}
+최종적으로 구현한 Multicycle CPU의 Schematic은 다음과 같다.
+
+\includegraphics[angle=90,scale=0.35]{schematic.pdf}
 
 \section{Discussion}
 
 \subsection{Single-cycle CPU vs. Multi-cycle CPU}
+Multicycle CPU와 Singlecycle CPU의 차이는 다음과 같다.
+\begin{itemize}
+  \item Staged -- 각 Unit의 재사용을 염두에 두고 Instruction의 실행을 Stage별로 구분하며, 이를 통해 필요 없는 Stage를 건너뛰는 방식으로 낭비되는 Cycle을 줄일 수 있다.
+  \item Control Unit -- Stage Transition을 Control Unit에서 관리하기 때문에, 각 Instruction별로 해당하는 Stage transition의 FSM 정보를 Control Unit이 저장하도록 구현된다.
+  \item Resource reuse -- \texttt{PC + 4} 혹은 \texttt{PC + imm} 등을 위해 추가적으로 Adder를 구성하지 않고, Control signal으로 Stage를 구분하여 겹치는 Stage가 없도록 ALU를 재사용한다.
+  Memory 또한 Instruction memory와 Data memory를 구분하지 않고, 하나의 Memory unit에서 각기 다른 address로의 접근을 Multiplexer를 사용해 Control하는 방식으로 구현된다.
+\end{itemize}
+
+\subsection{Instruction Count of testbenches}
+Control Unit의 Instruction Fetch Stage에서 Instruction의 type을 \texttt{\$display}를 통해 출력하고,
+Instruction의 개수를 세었다.
+\begin{center}
+  \begin{tabular}{ | c | c | c | c | c | c | c | c | }
+    \hline
+    \textbf{Testbench} & \textbf{Arith.} & \textbf{Arith. Imm.} & \textbf{Load} & \textbf{Store} & \textbf{Branch} & \textbf{\texttt{JAL}} & \textbf{\texttt{JALR}}\\ \hline
+    \texttt{basic\_mem} & 5 & 11 & 6 & 5 & 0 & 0 & 0 \\ \hline
+    \texttt{ifelse\_mem} & 0 & 14 & 9 & 6 & 4 & 0 & 0 \\ \hline
+    \texttt{loop\_mem} & 20 & 37 & 95 & 45 & 22 & 2 & 0 \\ \hline
+    \texttt{non-controlflow\_mem} & 11 & 18 & 4 & 4 & 0 & 0 & 0 \\ \hline
+    \texttt{recursive\_mem} & 23 & 332 & 228 & 168 & 41 & 62 & 41 \\
+    \hline
+  \end{tabular}
+\end{center}
+앞서 서술한 장점 중 Microsequence를 통해 Clock cycle을 줄일 수 있다는 점이 Multicycle CPU의 장점이다.
+현 Multicycle CPU의 구현에서 사용하는 Cycle 개수는 다음과 같다.
+\begin{itemize}
+  \item Load -- 5 Cycle
+  \item Arith., Arith. Imm., Store -- 4 Cycle
+  \item Branch, \texttt{JAL}, \texttt{JALR} -- 3 Cycle
+\end{itemize}
+Single Cycle CPU에서는 Instruction 종류에 관계 없이, Instruction Fetch부터 Write Back까지의 5 Cycle을 요하게 된다.
+각 Instruction별 Cycle 수를 곱하여 Speedup을 비교해보면 다음과 같다.
+\begin{center}
+  \begin{tabular}{ | c | c | c | c |}
+    \hline
+    \textbf{Testbench} & \textbf{Single-cycle CPU} & \textbf{Multi-cycle CPU} & \textbf{Speedup}\\ \hline
+    \texttt{basic\_mem} & 135 & 114 & 1.184 \\ \hline
+    \texttt{ifelse\_mem} & 165 & 137 & 1.204 \\ \hline
+    \texttt{loop\_mem} & 1105 & 955 & 1.157 \\ \hline
+    \texttt{non-controlflow\_mem} & 185 & 152 & 1.217 \\ \hline
+    \texttt{recursive\_mem} & 4475 & 3664 & 1.221 \\
+    \hline
+  \end{tabular}
+\end{center}
+최대 약 1.2배의 Speedup을 확인할 수 있었다.
+
 
 \section{Conclusion}
 주어진 testbench 파일들이 테스트를 통과함을 확인할 수 있었다.
@@ -788,5 +840,18 @@ R-type 혹은 I-type instruction의 경우 \texttt{func3} 및 \texttt{func7} 부
   31 00000000
   Correct output : 32/32
 \end{lstlisting}
+
+\pagebreak
+
+\section{Appendix -- Control Unit Code}
+Evaluation Criteria에서 요구한 Control Unit Code의 스크린샷을 분할하여 첨부했다.
+(22page 좌) - (22page 우) - (23page) 순서로 \texttt{control\_unit.v}를 구성한다.
+
+\begin{center}
+  \includegraphics[scale=0.15]{code_screenshot/control_unit_1.png}
+  \includegraphics[scale=0.15]{code_screenshot/control_unit_2.png}
+  \includegraphics[scale=0.15]{code_screenshot/control_unit_3.png}
+\end{center}
+
 \end{document}
 % vim: textwidth=79
