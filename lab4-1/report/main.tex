@@ -53,10 +53,45 @@
 \maketitle
 
 \section{Introduction}
+RISC-V architecture를 바당으로 Control flow instructiond을 처리하지 않는 Pipelined CPU를 구현한다.
 
 \section{Design}
+이번에 구현한 RISC-V Multicycle CPU는 다음과 같은 주요 기능을 가진 Submodule로 나누었으며, 생성된 값들을 선택하기 위해
+추가적으로 Multiplexer를 구현하여 사용했다. 기존 Single-cycle CPU에 추가적으로 Forwarding unit과 Forwarding path를
+설계하여 Pipelining을 지원하였다.
+
+\subsection{Program Counter}
+
+\subsection{Instruction Memory and Data Memory}
+
+\subsection{Register File}
+
+\subsection{Inter-Stage Registers}
+\subsubsection{IF--ID}
+\subsubsection{ID--EX}
+\subsubsection{EX--MEM}
+\subsubsection{MEM--WB}
+
+\subsection{ALU}
+
+\subsection{Immediate Generator}
+
+\subsection{Control Unit}
+
+\subsection{Hazard Detection Unit}
+
+\section{Hazard Detection and Data Forwarding}
 
 \section{Implementation}
+각 베릴로그 파일에 대한 세부 설명은 다음과 같다.
+
+\subsection{\texttt{top.v} -- Top module}
+\texttt{cpu.v}에서 구현한 \texttt{cpu} 모듈을 사용하여 Pipelined CPU를 구현하였다.
+
+\subsection{\texttt{cpu.v} -- 내부 Module을 연결하여 Pipelined CPU 구성}
+\texttt{cpu.v}는 다음과 같은 submodule을 연결하여 구성하였다.
+\begin{itemize}
+\end{itemize}
 
 \section{Discussion}
 
