@@ -56,6 +56,7 @@ module cpu (
   // From others
   reg MEM_WB_mem_to_reg_src_1;
   reg MEM_WB_mem_to_reg_src_2;
+  reg MEM_WB_rd;
 
   // ---------- Update program counter ----------
   // PC must be updated on the rising edge (positive edge) of the clock.
@@ -131,10 +132,28 @@ module cpu (
   // ---------- ALU ----------
   ALU alu (
       .alu_op    (),  // input
-      .alu_in_1  (),  // input  
-      .alu_in_2  (),  // input
+      .alu_in_1  (alu_in_1_forwarded_value),  // input  
+      .alu_in_2  (alu_in_2_forwarded_value),  // input
       .alu_result(),  // output
       .alu_zero  ()   // output
+  );
+
+  // ----------- ALU input multiplexer (For Forwarding) -----------
+  wire [31:0] alu_in_1_forwarded_value;
+  wire [31:0] alu_in_2_forwarded_value;
+
+  mux32bit_2x1 alu_in_1_forward_mux(
+    .mux_in_0(ID_EX_rs1_data),          // rs1_data @ ID/EX ->
+    .mux_in_1(rs1_hazard_value),        // rs1_hzd_detection_unit.value -> 
+    .sel(rs1_is_hazard),                // rs1_hzd_detection_unit.is_hazardous -> 
+    .mux_out(alu_in_1_forwarded_value)  // -> alu.alu_in_1
+  );
+  
+  mux32bit_2x1 alu_in_2_forward_mux(
+    .mux_in_0(ID_EX_rs2_data),          // rs2_data @ ID/EX -> 
+    .mux_in_1(rs2_hazard_value),        // rs2_hzd_detection_unit.value -> 
+    .sel(rs2_is_hazard),                // rs2_hzd_detection_unit.is_hazardous -> 
+    .mux_out(alu_in_2_forwarded_value)  // -> alu.alu_in_2
   );
 
   // Update EX/MEM pipeline registers here
@@ -161,4 +180,35 @@ module cpu (
     end else begin
     end
   end
+
+  // ---------- Hazard Detection Unit ----------
+  wire [31:0] rs1_hazard_value;
+  wire [31:0] rs2_hazard_value;
+  wire rs1_is_hazard;
+  wire rs2_is_hazard;
+  
+  HazardDetectionUnit rs1_hzd_detection_unit(
+    .id_ex_rs(ID_EX_rs1_data),
+    .ex_mem_rd(EX_MEM_rd),
+    .ex_mem_reg_write(EX_MEM_reg_write),
+    .ex_mem_alu_out(EX_MEM_alu_out),
+    .mem_wb_rd(MEM_WB_rd),
+    .mem_wb_reg_write(MEM_WB_reg_write),
+    .mem_wb_mem_to_reg(MEM_WB_mem_to_reg_src_1),
+    .value(rs1_hazard_value),
+    .is_hazardous(rs1_is_hazard)
+  );
+
+  HazardDetectionUnit rs2_hzd_detection_unit(
+    .id_ex_rs(ID_EX_rs2_data),
+    .ex_mem_rd(EX_MEM_rd),
+    .ex_mem_reg_write(EX_MEM_reg_write),
+    .ex_mem_alu_out(EX_MEM_alu_out),
+    .mem_wb_rd(MEM_WB_rd),
+    .mem_wb_reg_write(MEM_WB_reg_write),
+    .mem_wb_mem_to_reg(MEM_WB_mem_to_reg_src_2),
+    .value(rs2_hazard_value),
+    .is_hazardous(rs2_is_hazard)
+  );
+
 endmodule
