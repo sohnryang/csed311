@@ -111,9 +111,11 @@ module cpu (
   );
 
   // ---------- Immediate Generator ----------
+  wire imm_gen_output;
+
   ImmediateGenerator imm_gen (
       .part_of_inst(),  // input
-      .imm_gen_out ()   // output
+      .imm_gen_out (imm_gen_output)   // output
   );
 
   // Update ID/EX pipeline registers here
@@ -133,10 +135,21 @@ module cpu (
   ALU alu (
       .alu_op    (),  // input
       .alu_in_1  (alu_in_1_forwarded_value),  // input  
-      .alu_in_2  (alu_in_2_forwarded_value),  // input
+      .alu_in_2  (alu_in_2_input),  // input
       .alu_result(),  // output
       .alu_zero  ()   // output
   );
+
+  // ---------- ALU in_2 from IMM or REG ----------
+  wire alu_in_2_input;
+  mux32bit_2x1 mux_alu_in_2_select (
+      .mux_in_0(alu_in_2_forwarded_value),  // alu_in_2_forward_mux.mux_out
+      .mux_in_1(imm_gen_output),            // imm_gen.imm_gen_out -> 
+      .sel(),                               // (control unit) -> 
+      .mux_out(alu_in_2_input)              // -> alu.alu_in_2
+  );
+  
+
 
   // ----------- ALU input multiplexer (For Forwarding) -----------
   wire [31:0] alu_in_1_forwarded_value;
@@ -153,7 +166,7 @@ module cpu (
     .mux_in_0(ID_EX_rs2_data),          // rs2_data @ ID/EX -> 
     .mux_in_1(rs2_hazard_value),        // rs2_hzd_detection_unit.value -> 
     .sel(rs2_is_hazard),                // rs2_hzd_detection_unit.is_hazardous -> 
-    .mux_out(alu_in_2_forwarded_value)  // -> alu.alu_in_2
+    .mux_out(alu_in_2_forwarded_value)  // -> mux_alu_in_2_select.mux_in_0
   );
 
   // Update EX/MEM pipeline registers here
