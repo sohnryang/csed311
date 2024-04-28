@@ -61,8 +61,8 @@ module cpu (
   // ---------- Update program counter ----------
   // PC must be updated on the rising edge (positive edge) of the clock.
   PC pc (
-      .reset     (),  // input (Use reset to initialize PC. Initial value must be 0)
-      .clk       (),  // input
+      .reset     (reset),  // input (Use reset to initialize PC. Initial value must be 0)
+      .clk       (clk),  // input
       .next_pc   (),  // input
       .current_pc()   // output
   );
@@ -84,8 +84,8 @@ module cpu (
 
   // ---------- Register File ----------
   RegisterFile reg_file (
-      .reset       (),          // input
-      .clk         (),          // input
+      .reset       (reset),          // input
+      .clk         (clk),          // input
       .rs1         (),          // input
       .rs2         (),          // input
       .rd          (),          // input
@@ -178,8 +178,8 @@ module cpu (
 
   // ---------- Data Memory ----------
   DataMemory dmem (
-      .reset    (),  // input
-      .clk      (),  // input
+      .reset    (reset),  // input
+      .clk      (clk),  // input
       .addr     (),  // input
       .din      (),  // input
       .mem_read (),  // input
@@ -228,4 +228,81 @@ module cpu (
     .is_hazardous(rs2_is_hazard)
   );
 
+  // ---------- Pipelining IF - ID ----------
+  IFIDRegister pipeline_if_id(
+    .clk(clk),
+    .reset(reset),
+
+    .write_enable(),
+    .inst_in(),
+    .inst_out()
+  );
+
+  // ---------- Pipelining ID - EX ----------
+  IDEXRegister pipeline_id_ex(
+    .clk(clk),
+    .reset(reset),
+
+    .wb_enable_in(),
+    .mem_enable_in(),
+    .mem_write_in(),
+    .op2_imm_in(),
+    .is_ecall_in(),
+
+    .rs1_in(),
+    .rs2_in(),
+    .rd_id_in(),
+
+    .wb_enable(),
+    .mem_enable(),
+    .mem_write(),
+    .op2_imm(),
+    .is_ecall(),
+
+    .rs1(),
+    .rs2(),
+    .rd_id()
+  );
+
+  // ---------- Pipelining EX - MEM ----------
+  EXMEMRegister pipeline_ex_mem(
+    .clk(clk),
+    .reset(reset),
+
+    .wb_enable_in(),
+    .mem_enable_in(),
+    .mem_write_in(),
+    .is_ecall_in(),
+
+    .alu_output_in(),
+    .rs2_in(),
+    .rd_id_in(),
+
+    .wb_enable(),
+    .mem_enable(),
+    .mem_write(),
+    .is_ecall(),
+
+    .alu_output(),
+    .rs2(),
+    .rd_id()
+  );
+  
+  // ---------- Pipelining MEM - WB ----------
+  MEMWBRegister pipeline_mem_wb(
+    .clk(clk),
+    .reset(reset),
+
+    .wb_enable_in(),
+    .is_ecall_in(),
+
+    .rd_id_in(),
+    .rd_in(),
+
+    .wb_enable(),
+    .is_ecall(),
+
+    .rd_id(),
+    .rd()
+  );
 endmodule
