@@ -15,294 +15,274 @@ module cpu (
     output [31:0] print_reg[0:31]
 );  // Whehther to finish simulation
   /***** Wire declarations *****/
-  /***** Register declarations *****/
-  // You need to modify the width of registers
-  // In addition, 
-  // 1. You might need other pipeline registers that are not described below
-  // 2. You might not need registers described below
-  /***** IF/ID pipeline registers *****/
-  reg IF_ID_inst;  // will be used in ID stage
-  /***** ID/EX pipeline registers *****/
-  // From the control unit
-  reg ID_EX_alu_op;  // will be used in EX stage
-  reg ID_EX_alu_src;  // will be used in EX stage
-  reg ID_EX_mem_write;  // will be used in MEM stage
-  reg ID_EX_mem_read;  // will be used in MEM stage
-  reg ID_EX_mem_to_reg;  // will be used in WB stage
-  reg ID_EX_reg_write;  // will be used in WB stage
-  // From others
-  reg ID_EX_rs1_data;
-  reg ID_EX_rs2_data;
-  reg ID_EX_imm;
-  reg ID_EX_ALU_ctrl_unit_input;
-  reg ID_EX_rd;
-
-  /***** EX/MEM pipeline registers *****/
-  // From the control unit
-  reg EX_MEM_mem_write;  // will be used in MEM stage
-  reg EX_MEM_mem_read;  // will be used in MEM stage
-  reg EX_MEM_is_branch;  // will be used in MEM stage
-  reg EX_MEM_mem_to_reg;  // will be used in WB stage
-  reg EX_MEM_reg_write;  // will be used in WB stage
-  // From others
-  reg EX_MEM_alu_out;
-  reg EX_MEM_dmem_data;
-  reg EX_MEM_rd;
-
-  /***** MEM/WB pipeline registers *****/
-  // From the control unit
-  reg MEM_WB_mem_to_reg;  // will be used in WB stage
-  reg MEM_WB_reg_write;  // will be used in WB stage
-  // From others
-  reg MEM_WB_mem_to_reg_src_1;
-  reg MEM_WB_mem_to_reg_src_2;
-  reg MEM_WB_rd;
-
   // ---------- Update program counter ----------
   // PC must be updated on the rising edge (positive edge) of the clock.
+  wire pc_write_enable;
+  wire [31:0] pc_next_pc;
+  wire [31:0] pc_current_pc;
   PC pc (
-      .reset     (reset),  // input (Use reset to initialize PC. Initial value must be 0)
-      .clk       (clk),  // input
-      .next_pc   (),  // input
-      .current_pc()   // output
+      .reset(reset),  // input (Use reset to initialize PC. Initial value must be 0)
+      .clk(clk),  // input
+      .write_enable(pc_write_enable),
+      .next_pc(pc_next_pc),  // input
+      .current_pc(pc_current_pc)  // output
   );
 
   // ---------- Instruction Memory ----------
+  wire [31:0] imem_dout;
   InstMemory imem (
-      .reset(),  // input
-      .clk  (),  // input
-      .addr (),  // input
-      .dout ()   // output
+      .reset(reset),  // input
+      .clk(clk),  // input
+      .addr(pc_current_pc),  // input
+      .dout(imem_dout)  // output
   );
 
   // Update IF/ID pipeline registers here
-  always @(posedge clk) begin
-    if (reset) begin
-    end else begin
-    end
-  end
+  wire IF_ID_reg_write_enable;
+  wire [31:0] IF_ID_reg_inst_out;
+  IFIDRegister if_id_reg (
+      .clk  (clk),
+      .reset(reset),
+
+      .write_enable(IF_ID_reg_write_enable),
+      .inst_in(imem_dout),
+
+      .inst_out(IF_ID_reg_inst_out)
+  );
 
   // ---------- Register File ----------
+  wire [31:0] reg_file_rd_din;
+  wire reg_file_write_enable;
+  wire [31:0] reg_file_rs1_dout;
+  wire [31:0] reg_file_rs2_dout;
   RegisterFile reg_file (
-      .reset       (reset),          // input
-      .clk         (clk),          // input
-      .rs1         (),          // input
-      .rs2         (),          // input
-      .rd          (),          // input
-      .rd_din      (),          // input
-      .write_enable(),          // input
-      .rs1_dout    (),          // output
-      .rs2_dout    (),          // output
+      .reset       (reset),                      // input
+      .clk         (clk),                        // input
+      .rs1         (IF_ID_reg_inst_out[19:15]),  // input
+      .rs2         (IF_ID_reg_inst_out[24:20]),  // input
+      .rd          (IF_ID_reg_inst_out[11:7]),   // input
+      .rd_din      (reg_file_rd_din),            // input
+      .write_enable(reg_file_write_enable),      // input
+      .rs1_dout    (reg_file_rs1_dout),          // output
+      .rs2_dout    (reg_file_rs2_dout),          // output
       .print_reg   (print_reg)
   );
 
-
   // ---------- Control Unit ----------
+  wire ctrl_unit_wb_enable;
+  wire ctrl_unit_mem_enable;
+  wire ctrl_unit_mem_write;
+  wire ctrl_unit_op2_imm;
+  wire ctrl_unit_is_ecall;
   ControlUnit ctrl_unit (
-      .part_of_inst(),  // input
-      .mem_read    (),  // output
-      .mem_to_reg  (),  // output
-      .mem_write   (),  // output
-      .alu_src     (),  // output
-      .write_enable(),  // output
-      .pc_to_reg   (),  // output
-      .alu_op      (),  // output
-      .is_ecall    ()   // output (ecall inst)
+      .opcode    (IF_ID_reg_inst_out[6:0]),  // input
+      .wb_enable (ctrl_unit_wb_enable),
+      .mem_enable(ctrl_unit_mem_enable),
+      .mem_write (ctrl_unit_mem_write),
+      .op2_imm   (ctrl_unit_op2_imm),
+      .is_ecall  (ctrl_unit_is_ecall)
   );
 
   // ---------- Immediate Generator ----------
-  wire imm_gen_output;
-
+  wire [31:0] imm_gem_imm;
   ImmediateGenerator imm_gen (
-      .part_of_inst(),  // input
-      .imm_gen_out (imm_gen_output)   // output
+      .inst(IF_ID_reg_inst_out),  // input
+      .imm(imm_gen_imm)  // output
   );
 
   // Update ID/EX pipeline registers here
-  always @(posedge clk) begin
-    if (reset) begin
-    end else begin
-    end
-  end
+  wire [31:0] ID_EX_reg_rs1_in;
+  wire [31:0] ID_EX_reg_rs2_in;
+  wire [4:0] ID_EX_reg_rd_id_in;
+  wire ID_EX_reg_wb_enable;
+  wire ID_EX_reg_mem_enable;
+  wire ID_EX_reg_mem_write;
+  wire ID_EX_reg_op2_imm;
+  wire ID_EX_reg_is_ecall;
+  wire [31:0] ID_EX_reg_rs1;
+  wire [31:0] ID_EX_reg_rs2;
+  wire [4:0] ID_EX_reg_rd_id;
+  IDEXRegister id_ex_reg (
+      .clk  (clk),
+      .reset(reset),
+
+      .wb_enable_in(ctrl_unit_wb_enable),
+      .mem_enable_in(ctrl_unit_mem_enable),
+      .mem_write_in(ctrl_unit_mem_write),
+      .op2_imm_in(ctrl_unit_op2_imm),
+      .is_ecall_in(ctrl_unit_is_ecall),
+
+      .rs1_in  (reg_file_rs1_dout),
+      .rs2_in  (reg_file_rs2_dout),
+      .rd_id_in(IF_ID_reg_inst_out[11:7]),
+
+      .wb_enable(ID_EX_reg_wb_enable),
+      .mem_enable(ID_EX_reg_mem_enable),
+      .mem_write(ID_EX_reg_mem_write),
+      .op2_imm(ID_EX_reg_op2_imm),
+      .is_ecall(ID_EX_reg_is_ecall),
+
+      .rs1  (ID_EX_reg_rs1),
+      .rs2  (ID_EX_reg_rs2),
+      .rd_id(ID_EX_reg_rd_id)
+  );
 
   // ---------- ALU Control Unit ----------
+  wire [3:0] alu_ctrl_unit_alu_op;
   ALUControlUnit alu_ctrl_unit (
-      .part_of_inst(),  // input
-      .alu_op      ()   // output
+      .part_of_inst({IR[31:25], IR[14:12], IR[6:0]}),  // input
+      .alu_op      (alu_ctrl_unit_alu_op)              // output
   );
 
   // ---------- ALU ----------
+  wire [31:0] alu_alu_result;
   ALU alu (
-      .alu_op    (),  // input
+      .alu_op    (alu_ctrl_unit_alu_op),      // input
       .alu_in_1  (alu_in_1_forwarded_value),  // input  
-      .alu_in_2  (alu_in_2_input),  // input
-      .alu_result(),  // output
-      .alu_zero  ()   // output
+      .alu_in_2  (alu_in_2_input),            // input
+      .alu_result(alu_alu_result),            // output
   );
 
   // ---------- ALU in_2 from IMM or REG ----------
-  wire alu_in_2_input;
+  wire [31:0] alu_in_2_input;
   mux32bit_2x1 mux_alu_in_2_select (
       .mux_in_0(alu_in_2_forwarded_value),  // alu_in_2_forward_mux.mux_out
       .mux_in_1(imm_gen_output),            // imm_gen.imm_gen_out -> 
-      .sel(),                               // (control unit) -> 
-      .mux_out(alu_in_2_input)              // -> alu.alu_in_2
+      .sel     (ID_EX_reg_op2_imm),         // (control unit) -> 
+      .mux_out (alu_in_2_input)             // -> alu.alu_in_2
   );
-  
+
 
 
   // ----------- ALU input multiplexer (For Forwarding) -----------
   wire [31:0] alu_in_1_forwarded_value;
   wire [31:0] alu_in_2_forwarded_value;
 
-  mux32bit_2x1 alu_in_1_forward_mux(
-    .mux_in_0(ID_EX_rs1_data),          // rs1_data @ ID/EX ->
-    .mux_in_1(rs1_hazard_value),        // rs1_hzd_detection_unit.value -> 
-    .sel(rs1_is_hazard),                // rs1_hzd_detection_unit.is_hazardous -> 
-    .mux_out(alu_in_1_forwarded_value)  // -> alu.alu_in_1
+  mux32bit_2x1 alu_in_1_forward_mux (
+      .mux_in_0(ID_EX_rs1_data),           // rs1_data @ ID/EX ->
+      .mux_in_1(rs1_hazard_value),         // rs1_hzd_detection_unit.value -> 
+      .sel     (rs1_is_hazard),            // rs1_hzd_detection_unit.is_hazardous -> 
+      .mux_out (alu_in_1_forwarded_value)  // -> alu.alu_in_1
   );
-  
-  mux32bit_2x1 alu_in_2_forward_mux(
-    .mux_in_0(ID_EX_rs2_data),          // rs2_data @ ID/EX -> 
-    .mux_in_1(rs2_hazard_value),        // rs2_hzd_detection_unit.value -> 
-    .sel(rs2_is_hazard),                // rs2_hzd_detection_unit.is_hazardous -> 
-    .mux_out(alu_in_2_forwarded_value)  // -> mux_alu_in_2_select.mux_in_0
+
+  mux32bit_2x1 alu_in_2_forward_mux (
+      .mux_in_0(ID_EX_rs2_data),           // rs2_data @ ID/EX -> 
+      .mux_in_1(rs2_hazard_value),         // rs2_hzd_detection_unit.value -> 
+      .sel     (rs2_is_hazard),            // rs2_hzd_detection_unit.is_hazardous -> 
+      .mux_out (alu_in_2_forwarded_value)  // -> alu.alu_in_2
+  );
+
+  mux32bit_2x1 alu_in_2_forward_mux (
+      .mux_in_0(ID_EX_rs2_data),           // rs2_data @ ID/EX -> 
+      .mux_in_1(rs2_hazard_value),         // rs2_hzd_detection_unit.value -> 
+      .sel     (rs2_is_hazard),            // rs2_hzd_detection_unit.is_hazardous -> 
+      .mux_out (alu_in_2_forwarded_value)  // -> mux_alu_in_2_select.mux_in_0
   );
 
   // Update EX/MEM pipeline registers here
-  always @(posedge clk) begin
-    if (reset) begin
-    end else begin
-    end
-  end
+  wire EX_MEM_reg_wb_enable;
+  wire EX_MEM_reg_mem_enable;
+  wire EX_MEM_reg_mem_write;
+  wire EX_MEM_reg_is_ecall;
+  wire [31:0] EX_MEM_reg_alu_output;
+  wire [31:0] EX_MEM_reg_rs2;
+  wire [4:0] EX_MEM_reg_rd_id;
+  EXMEMRegister ex_mem_reg (
+      .clk  (clk),
+      .reset(reset),
+
+      .wb_enable_in (ID_EX_reg_wb_enable),
+      .mem_enable_in(ID_EX_reg_mem_enable),
+      .mem_write_in (ID_EX_reg_mem_write),
+      .is_ecall_in  (ID_EX_reg_is_ecall),
+
+      .alu_output_in(alu_alu_result),
+      .rs2_in(ID_EX_reg_rs2),
+      .rd_id_in(ID_EX_reg_rd_id),
+
+      .wb_enable (EX_MEM_reg_wb_enable),
+      .mem_enable(EX_MEM_reg_mem_enable),
+      .mem_write (EX_MEM_reg_mem_write),
+      .is_ecall  (EX_MEM_reg_is_ecall),
+
+      .alu_output(EX_MEM_reg_alu_output),
+      .rs2(EX_MEM_reg_rs2),
+      .rd_id(EX_MEM_reg_rd_id)
+  );
 
   // ---------- Data Memory ----------
+  wire [31:0] dmem_dout;
   DataMemory dmem (
-      .reset    (reset),  // input
-      .clk      (clk),  // input
-      .addr     (),  // input
-      .din      (),  // input
-      .mem_read (),  // input
-      .mem_write(),  // input
-      .dout     ()   // output
+      .reset    (reset),                  // input
+      .clk      (clk),                    // input
+      .addr     (EX_MEM_reg_alu_output),  // input
+      .din      (EX_MEM_reg_rs2),         // input
+      .mem_read (EX_MEM_reg_mem_enable),  // input
+      .mem_write(EX_MEM_reg_mem_write),   // input
+      .dout     (dmem_dout)               // output
   );
 
   // Update MEM/WB pipeline registers here
-  always @(posedge clk) begin
-    if (reset) begin
-    end else begin
-    end
-  end
+  wire [31:0] rd_mux_mux_out;
+  mux32bit_2x1 rd_mux (
+      .mux_in_0(EX_MEM_reg_alu_output),
+      .mux_in_1(dmem_dout),
+      .sel(EX_MEM_reg_mem_enable),
+      .mux_out(rd_mux_mux_out)
+  );
+
+  wire MEM_WB_reg_wb_enable;
+  wire MEM_WB_reg_is_ecall;
+  wire [4:0] MEM_WB_reg_rd_id;
+  wire [31:0] MEM_WB_reg_rd;
+  MEMWBRegister mem_wb_reg (
+      .clk  (clk),
+      .reset(reset),
+
+      .wb_enable_in(EX_MEM_reg_wb_enable),
+      .is_ecall_in (EX_MEM_reg_is_ecall),
+
+      .rd_id_in(EX_MEM_reg_rd_id),
+      .rd_in(rd_mux_mux_out),
+
+      .wb_enable(MEM_WB_reg_wb_enable),
+      .is_ecall (MEM_WB_reg_is_ecall),
+
+      .rd_id(MEM_WB_reg_rd_id),
+      .rd(MEM_WB_reg_rd)
+  );
 
   // ---------- Hazard Detection Unit ----------
   wire [31:0] rs1_hazard_value;
   wire [31:0] rs2_hazard_value;
   wire rs1_is_hazard;
   wire rs2_is_hazard;
-  
-  HazardDetectionUnit rs1_hzd_detection_unit(
-    .clk(clk),
-    .reset(reset),
-    .id_ex_rs(ID_EX_rs1_data),
-    .ex_mem_rd(EX_MEM_rd),
-    .ex_mem_reg_write(EX_MEM_reg_write),
-    .ex_mem_alu_out(EX_MEM_alu_out),
-    .mem_wb_rd(MEM_WB_rd),
-    .mem_wb_reg_write(MEM_WB_reg_write),
-    .mem_wb_mem_to_reg(MEM_WB_mem_to_reg_src_1),
-    .value(rs1_hazard_value),
-    .is_hazardous(rs1_is_hazard)
+
+  HazardDetectionUnit rs1_hzd_detection_unit (
+      .clk(clk),
+      .reset(reset),
+      .id_ex_rs(ID_EX_rs1_data),
+      .ex_mem_rd(EX_MEM_rd),
+      .ex_mem_reg_write(EX_MEM_reg_write),
+      .ex_mem_alu_out(EX_MEM_alu_out),
+      .mem_wb_rd(MEM_WB_rd),
+      .mem_wb_reg_write(MEM_WB_reg_write),
+      .mem_wb_mem_to_reg(MEM_WB_mem_to_reg_src_1),
+      .value(rs1_hazard_value),
+      .is_hazardous(rs1_is_hazard)
   );
 
-  HazardDetectionUnit rs2_hzd_detection_unit(
-    .clk(clk),
-    .reset(reset),
-    .id_ex_rs(ID_EX_rs2_data),
-    .ex_mem_rd(EX_MEM_rd),
-    .ex_mem_reg_write(EX_MEM_reg_write),
-    .ex_mem_alu_out(EX_MEM_alu_out),
-    .mem_wb_rd(MEM_WB_rd),
-    .mem_wb_reg_write(MEM_WB_reg_write),
-    .mem_wb_mem_to_reg(MEM_WB_mem_to_reg_src_2),
-    .value(rs2_hazard_value),
-    .is_hazardous(rs2_is_hazard)
-  );
-
-  // ---------- Pipelining IF - ID ----------
-  IFIDRegister pipeline_if_id(
-    .clk(clk),
-    .reset(reset),
-
-    .write_enable(),
-    .inst_in(),
-    .inst_out()
-  );
-
-  // ---------- Pipelining ID - EX ----------
-  IDEXRegister pipeline_id_ex(
-    .clk(clk),
-    .reset(reset),
-
-    .wb_enable_in(),
-    .mem_enable_in(),
-    .mem_write_in(),
-    .op2_imm_in(),
-    .is_ecall_in(),
-
-    .rs1_in(),
-    .rs2_in(),
-    .rd_id_in(),
-
-    .wb_enable(),
-    .mem_enable(),
-    .mem_write(),
-    .op2_imm(),
-    .is_ecall(),
-
-    .rs1(),
-    .rs2(),
-    .rd_id()
-  );
-
-  // ---------- Pipelining EX - MEM ----------
-  EXMEMRegister pipeline_ex_mem(
-    .clk(clk),
-    .reset(reset),
-
-    .wb_enable_in(),
-    .mem_enable_in(),
-    .mem_write_in(),
-    .is_ecall_in(),
-
-    .alu_output_in(),
-    .rs2_in(),
-    .rd_id_in(),
-
-    .wb_enable(),
-    .mem_enable(),
-    .mem_write(),
-    .is_ecall(),
-
-    .alu_output(),
-    .rs2(),
-    .rd_id()
-  );
-  
-  // ---------- Pipelining MEM - WB ----------
-  MEMWBRegister pipeline_mem_wb(
-    .clk(clk),
-    .reset(reset),
-
-    .wb_enable_in(),
-    .is_ecall_in(),
-
-    .rd_id_in(),
-    .rd_in(),
-
-    .wb_enable(),
-    .is_ecall(),
-
-    .rd_id(),
-    .rd()
+  HazardDetectionUnit rs2_hzd_detection_unit (
+      .clk(clk),
+      .reset(reset),
+      .id_ex_rs(ID_EX_rs2_data),
+      .ex_mem_rd(EX_MEM_rd),
+      .ex_mem_reg_write(EX_MEM_reg_write),
+      .ex_mem_alu_out(EX_MEM_alu_out),
+      .mem_wb_rd(MEM_WB_rd),
+      .mem_wb_reg_write(MEM_WB_reg_write),
+      .mem_wb_mem_to_reg(MEM_WB_mem_to_reg_src_2),
+      .value(rs2_hazard_value),
+      .is_hazardous(rs2_is_hazard)
   );
 endmodule
