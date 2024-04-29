@@ -48,7 +48,7 @@ module ControlUnit (
         mem_enable = 0;
         mem_write = 0;
         op2_imm = 0;
-        is_ecall = 0;
+        is_ecall = 1;
       end
 
       default: begin
