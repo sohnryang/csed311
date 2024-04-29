@@ -1,13 +1,13 @@
 module MUX4X1 #(
     parameter WIDTH = 32
 ) (
-    input [SIZE-1:0] mux_in_0,
-    input [SIZE-1:0] mux_in_1,
-    input [SIZE-1:0] mux_in_2,
-    input [SIZE-1:0] mux_in_3,
+    input [WIDTH-1:0] mux_in_0,
+    input [WIDTH-1:0] mux_in_1,
+    input [WIDTH-1:0] mux_in_2,
+    input [WIDTH-1:0] mux_in_3,
     input [1:0] sel,
 
-    output reg [SIZE-1:0] mux_out
+    output reg [WIDTH-1:0] mux_out
 );
   always @(*) begin
     case (sel)
