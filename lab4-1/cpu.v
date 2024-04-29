@@ -58,14 +58,16 @@ module cpu (
   wire ctrl_unit_op2_imm;
   wire ctrl_unit_is_ecall;
   wire ctrl_unit_rs2_used;
+  wire ctrl_unit_ex_forwardable;
   ControlUnit ctrl_unit (
-      .opcode    (IF_ID_reg_inst_out[6:0]),  // input
-      .wb_enable (ctrl_unit_wb_enable),
-      .mem_enable(ctrl_unit_mem_enable),
-      .mem_write (ctrl_unit_mem_write),
-      .op2_imm   (ctrl_unit_op2_imm),
-      .is_ecall  (ctrl_unit_is_ecall),
-      .rs2_used  (ctrl_unit_rs2_used)
+      .opcode        (IF_ID_reg_inst_out[6:0]),  // input
+      .wb_enable     (ctrl_unit_wb_enable),
+      .mem_enable    (ctrl_unit_mem_enable),
+      .mem_write     (ctrl_unit_mem_write),
+      .op2_imm       (ctrl_unit_op2_imm),
+      .is_ecall      (ctrl_unit_is_ecall),
+      .rs2_used      (ctrl_unit_rs2_used),
+      .ex_forwardable(ctrl_unit_ex_forwardable)
   );
 
   wire [4:0] rs1_mux_mux_out;
@@ -118,25 +120,31 @@ module cpu (
   HazardDetectionUnit rs1_hdu (
       .enable(1),
       .rs_id(rs1_mux_mux_out),
-      .ex_reg_write(ID_EX_reg_wb_enable),
+      .ex_mem_read(ID_EX_reg_mem_enable & ~ID_EX_reg_mem_write),
       .ex_rd_id(ID_EX_reg_rd_id),
-      .mem_reg_write(EX_MEM_reg_wb_enable),
-      .mem_rd_id(EX_MEM_reg_rd_id),
       .is_hazardous(rs1_hdu_is_hazardous)
   );
 
   HazardDetectionUnit rs2_hdu (
       .enable(ctrl_unit_rs2_used),
       .rs_id(IF_ID_reg_inst_out[24:20]),
+      .ex_mem_read(ID_EX_reg_mem_enable & ~ID_EX_reg_mem_write),
+      .ex_rd_id(ID_EX_reg_rd_id),
+      .is_hazardous(rs2_hdu_is_hazardous)
+  );
+
+  wire ecall_hdu_is_hazardous;
+  EcallHazardDetectionUnit ecall_hdu (
+      .enable(ctrl_unit_is_ecall),
       .ex_reg_write(ID_EX_reg_wb_enable),
       .ex_rd_id(ID_EX_reg_rd_id),
       .mem_reg_write(EX_MEM_reg_wb_enable),
       .mem_rd_id(EX_MEM_reg_rd_id),
-      .is_hazardous(rs2_hdu_is_hazardous)
+      .is_hazardous(ecall_hdu_is_hazardous)
   );
 
   wire is_hazardous;
-  assign is_hazardous = rs1_hdu_is_hazardous || rs2_hdu_is_hazardous;
+  assign is_hazardous = rs1_hdu_is_hazardous || rs2_hdu_is_hazardous || ecall_hdu_is_hazardous;
   assign pc_write_enable = ~is_hazardous;
   assign IF_ID_reg_write_enable = ~is_hazardous;
 
@@ -149,8 +157,11 @@ module cpu (
   wire ID_EX_reg_mem_write;
   wire ID_EX_reg_op2_imm;
   wire ID_EX_reg_is_halted;
+  wire ID_EX_reg_ex_forwardable;
   wire [31:0] ID_EX_reg_rs1;
   wire [31:0] ID_EX_reg_rs2;
+  wire [4:0] ID_EX_reg_rs1_id;
+  wire [4:0] ID_EX_reg_rs2_id;
   wire [4:0] ID_EX_reg_rd_id;
   wire [31:0] ID_EX_reg_inst;
   wire [31:0] ID_EX_reg_imm;
@@ -162,25 +173,31 @@ module cpu (
       .mem_enable_in(ctrl_unit_mem_enable),
       .mem_write_in(ctrl_unit_mem_write & ~is_hazardous),
       .op2_imm_in(ctrl_unit_op2_imm),
-      .is_halted_in(ecall_unit_is_halted),
+      .is_halted_in(ecall_unit_is_halted & ~is_hazardous),
+      .ex_forwardable_in(ctrl_unit_ex_forwardable & ~is_hazardous),
 
-      .rs1_in  (reg_file_rs1_dout),
-      .rs2_in  (reg_file_rs2_dout),
+      .rs1_in(reg_file_rs1_dout),
+      .rs2_in(reg_file_rs2_dout),
+      .rs1_id_in(rs1_mux_mux_out),
+      .rs2_id_in(IF_ID_reg_inst_out[24:20]),
       .rd_id_in(IF_ID_reg_inst_out[11:7]),
-      .inst_in (IF_ID_reg_inst_out),
-      .imm_in  (imm_gen_imm),
+      .inst_in(IF_ID_reg_inst_out),
+      .imm_in(imm_gen_imm),
 
       .wb_enable(ID_EX_reg_wb_enable),
       .mem_enable(ID_EX_reg_mem_enable),
       .mem_write(ID_EX_reg_mem_write),
       .op2_imm(ID_EX_reg_op2_imm),
       .is_halted(ID_EX_reg_is_halted),
+      .ex_forwardable(ID_EX_reg_ex_forwardable),
 
-      .rs1  (ID_EX_reg_rs1),
-      .rs2  (ID_EX_reg_rs2),
+      .rs1(ID_EX_reg_rs1),
+      .rs2(ID_EX_reg_rs2),
+      .rs1_id(ID_EX_reg_rs1_id),
+      .rs2_id(ID_EX_reg_rs2_id),
       .rd_id(ID_EX_reg_rd_id),
-      .inst (ID_EX_reg_inst),
-      .imm  (ID_EX_reg_imm)
+      .inst(ID_EX_reg_inst),
+      .imm(ID_EX_reg_imm)
   );
 
   // ---------- ALU Control Unit ----------
@@ -190,20 +207,66 @@ module cpu (
       .alu_op      (alu_ctrl_unit_alu_op)                                                  // output
   );
 
+  wire rs1_fwd_is_forward;
+  wire [31:0] rs1_fwd_forwarded_value;
+  ForwardingUnit rs1_fwd (
+      .rs_id(ID_EX_reg_rs1_id),
+      .ex_forwardable(EX_MEM_reg_ex_forwardable),
+      .ex_rd_id(EX_MEM_reg_rd_id),
+      .ex_rd(EX_MEM_reg_alu_output),
+      .mem_wb_enable(MEM_WB_reg_wb_enable),
+      .mem_rd_id(MEM_WB_reg_rd_id),
+      .mem_rd(MEM_WB_reg_rd),
+
+      .is_forward(rs1_fwd_is_forward),
+      .forwarded_value(rs1_fwd_forwarded_value)
+  );
+
+  wire [31:0] rs1_fwd_mux_mux_out;
+  MUX2X1 rs1_fwd_mux (
+      .mux_in_0(ID_EX_reg_rs1),
+      .mux_in_1(rs1_fwd_forwarded_value),
+      .sel(rs1_fwd_is_forward),
+      .mux_out(rs1_fwd_mux_mux_out)
+  );
+
+  wire rs2_fwd_is_forward;
+  wire [31:0] rs2_fwd_forwarded_value;
+  ForwardingUnit rs2_fwd (
+      .rs_id(ID_EX_reg_rs2_id),
+      .ex_forwardable(EX_MEM_reg_ex_forwardable),
+      .ex_rd_id(EX_MEM_reg_rd_id),
+      .ex_rd(EX_MEM_reg_alu_output),
+      .mem_wb_enable(MEM_WB_reg_wb_enable),
+      .mem_rd_id(MEM_WB_reg_rd_id),
+      .mem_rd(MEM_WB_reg_rd),
+
+      .is_forward(rs2_fwd_is_forward),
+      .forwarded_value(rs2_fwd_forwarded_value)
+  );
+
+  wire [31:0] rs2_fwd_mux_mux_out;
+  MUX2X1 rs2_fwd_mux (
+      .mux_in_0(ID_EX_reg_rs2),
+      .mux_in_1(rs2_fwd_forwarded_value),
+      .sel(rs2_fwd_is_forward),
+      .mux_out(rs2_fwd_mux_mux_out)
+  );
+
   // ---------- ALU in_2 from IMM or REG ----------
   wire [31:0] alu_in_2_input;
   MUX2X1 mux_alu_in_2_select (
-      .mux_in_0(ID_EX_reg_rs2),      // alu_in_2_forward_mux.mux_out
-      .mux_in_1(ID_EX_reg_imm),      // imm_gen.imm_gen_out -> 
-      .sel     (ID_EX_reg_op2_imm),  // (control unit) -> 
-      .mux_out (alu_in_2_input)      // -> alu.alu_in_2
+      .mux_in_0(rs2_fwd_mux_mux_out),  // alu_in_2_forward_mux.mux_out
+      .mux_in_1(ID_EX_reg_imm),        // imm_gen.imm_gen_out -> 
+      .sel     (ID_EX_reg_op2_imm),    // (control unit) -> 
+      .mux_out (alu_in_2_input)        // -> alu.alu_in_2
   );
 
   // ---------- ALU ----------
   wire [31:0] alu_alu_result;
   ALU alu (
       .alu_op    (alu_ctrl_unit_alu_op),  // input
-      .alu_in_1  (ID_EX_reg_rs1),         // input  
+      .alu_in_1  (rs1_fwd_mux_mux_out),   // input  
       .alu_in_2  (alu_in_2_input),        // input
       .alu_result(alu_alu_result)         // output
   );
@@ -213,6 +276,7 @@ module cpu (
   wire EX_MEM_reg_mem_enable;
   wire EX_MEM_reg_mem_write;
   wire EX_MEM_reg_is_halted;
+  wire EX_MEM_reg_ex_forwardable;
   wire [31:0] EX_MEM_reg_alu_output;
   wire [31:0] EX_MEM_reg_rs2;
   wire [4:0] EX_MEM_reg_rd_id;
@@ -220,19 +284,21 @@ module cpu (
       .clk  (clk),
       .reset(reset),
 
-      .wb_enable_in (ID_EX_reg_wb_enable),
+      .wb_enable_in(ID_EX_reg_wb_enable),
       .mem_enable_in(ID_EX_reg_mem_enable),
-      .mem_write_in (ID_EX_reg_mem_write),
-      .is_halted_in (ID_EX_reg_is_halted),
+      .mem_write_in(ID_EX_reg_mem_write),
+      .is_halted_in(ID_EX_reg_is_halted),
+      .ex_forwardable_in(ID_EX_reg_ex_forwardable),
 
       .alu_output_in(alu_alu_result),
-      .rs2_in(ID_EX_reg_rs2),
+      .rs2_in(rs2_fwd_mux_mux_out),
       .rd_id_in(ID_EX_reg_rd_id),
 
-      .wb_enable (EX_MEM_reg_wb_enable),
+      .wb_enable(EX_MEM_reg_wb_enable),
       .mem_enable(EX_MEM_reg_mem_enable),
-      .mem_write (EX_MEM_reg_mem_write),
-      .is_halted (EX_MEM_reg_is_halted),
+      .mem_write(EX_MEM_reg_mem_write),
+      .is_halted(EX_MEM_reg_is_halted),
+      .ex_forwardable(EX_MEM_reg_ex_forwardable),
 
       .alu_output(EX_MEM_reg_alu_output),
       .rs2(EX_MEM_reg_rs2),

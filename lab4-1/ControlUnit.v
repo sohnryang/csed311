@@ -8,7 +8,8 @@ module ControlUnit (
     output reg mem_write,
     output reg op2_imm,
     output reg is_ecall,
-    output reg rs2_used
+    output reg rs2_used,
+    output reg ex_forwardable
 );
   always @(*) begin
     case (opcode)
@@ -19,6 +20,7 @@ module ControlUnit (
         op2_imm = 0;
         is_ecall = 0;
         rs2_used = 1;
+        ex_forwardable = 1;
       end
 
       `ARITHMETIC_IMM: begin
@@ -28,6 +30,7 @@ module ControlUnit (
         op2_imm = 1;
         is_ecall = 0;
         rs2_used = 0;
+        ex_forwardable = 1;
       end
 
       `LOAD: begin
@@ -37,6 +40,7 @@ module ControlUnit (
         op2_imm = 1;
         is_ecall = 0;
         rs2_used = 0;
+        ex_forwardable = 0;
       end
 
       `STORE: begin
@@ -46,6 +50,7 @@ module ControlUnit (
         op2_imm = 1;
         is_ecall = 0;
         rs2_used = 1;
+        ex_forwardable = 0;
       end
 
       `ECALL: begin
@@ -55,6 +60,7 @@ module ControlUnit (
         op2_imm = 0;
         is_ecall = 1;
         rs2_used = 0;
+        ex_forwardable = 0;
       end
 
       default: begin
@@ -64,6 +70,7 @@ module ControlUnit (
         op2_imm = 0;
         is_ecall = 0;
         rs2_used = 0;
+        ex_forwardable = 0;
       end
     endcase
   end
