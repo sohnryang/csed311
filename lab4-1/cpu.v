@@ -57,13 +57,15 @@ module cpu (
   wire ctrl_unit_mem_write;
   wire ctrl_unit_op2_imm;
   wire ctrl_unit_is_ecall;
+  wire ctrl_unit_rs2_used;
   ControlUnit ctrl_unit (
       .opcode    (IF_ID_reg_inst_out[6:0]),  // input
       .wb_enable (ctrl_unit_wb_enable),
       .mem_enable(ctrl_unit_mem_enable),
       .mem_write (ctrl_unit_mem_write),
       .op2_imm   (ctrl_unit_op2_imm),
-      .is_ecall  (ctrl_unit_is_ecall)
+      .is_ecall  (ctrl_unit_is_ecall),
+      .rs2_used  (ctrl_unit_rs2_used)
   );
 
   wire [4:0] rs1_mux_mux_out;
@@ -124,7 +126,7 @@ module cpu (
   );
 
   HazardDetectionUnit rs2_hdu (
-      .enable(~ctrl_unit_op2_imm),
+      .enable(ctrl_unit_rs2_used),
       .rs_id(IF_ID_reg_inst_out[24:20]),
       .ex_reg_write(ID_EX_reg_wb_enable),
       .ex_rd_id(ID_EX_reg_rd_id),
