@@ -109,6 +109,35 @@ module cpu (
       .imm(imm_gen_imm)  // output
   );
 
+  // ---------- Hazard Detection Unit ----------
+  wire rs1_hdu_is_hazardous;
+  wire rs2_hdu_is_hazardous;
+
+  HazardDetectionUnit rs1_hdu (
+      .enable(1),
+      .rs_id(rs1_mux_mux_out),
+      .ex_reg_write(ID_EX_reg_wb_enable),
+      .ex_rd_id(ID_EX_reg_rd_id),
+      .mem_reg_write(EX_MEM_reg_wb_enable),
+      .mem_rd_id(EX_MEM_reg_rd_id),
+      .is_hazardous(rs1_hdu_is_hazardous)
+  );
+
+  HazardDetectionUnit rs2_hdu (
+      .enable(~ctrl_unit_op2_imm),
+      .rs_id(IF_ID_reg_inst_out[24:20]),
+      .ex_reg_write(ID_EX_reg_wb_enable),
+      .ex_rd_id(ID_EX_reg_rd_id),
+      .mem_reg_write(EX_MEM_reg_wb_enable),
+      .mem_rd_id(EX_MEM_reg_rd_id),
+      .is_hazardous(rs2_hdu_is_hazardous)
+  );
+
+  wire is_hazardous;
+  assign is_hazardous = rs1_hdu_is_hazardous || rs2_hdu_is_hazardous;
+  assign pc_write_enable = ~is_hazardous;
+  assign IF_ID_reg_write_enable = ~is_hazardous;
+
   // Update ID/EX pipeline registers here
   wire [31:0] ID_EX_reg_rs1_in;
   wire [31:0] ID_EX_reg_rs2_in;
@@ -127,9 +156,9 @@ module cpu (
       .clk  (clk),
       .reset(reset),
 
-      .wb_enable_in(ctrl_unit_wb_enable),
+      .wb_enable_in(ctrl_unit_wb_enable & ~is_hazardous),
       .mem_enable_in(ctrl_unit_mem_enable),
-      .mem_write_in(ctrl_unit_mem_write),
+      .mem_write_in(ctrl_unit_mem_write & ~is_hazardous),
       .op2_imm_in(ctrl_unit_op2_imm),
       .is_halted_in(ecall_unit_is_halted),
 
@@ -252,33 +281,4 @@ module cpu (
   assign reg_file_write_enable = MEM_WB_reg_wb_enable;
   assign reg_file_rd = MEM_WB_reg_rd_id;
   assign reg_file_rd_din = MEM_WB_reg_rd;
-
-  // ---------- Hazard Detection Unit ----------
-  wire rs1_hdu_is_hazardous;
-  wire rs2_hdu_is_hazardous;
-
-  HazardDetectionUnit rs1_hdu (
-      .enable(1),
-      .rs_id(rs1_mux_mux_out),
-      .ex_reg_write(ID_EX_reg_wb_enable),
-      .ex_rd_id(ID_EX_reg_rd_id),
-      .mem_reg_write(EX_MEM_reg_wb_enable),
-      .mem_rd_id(EX_MEM_reg_rd_id),
-      .is_hazardous(rs1_hdu_is_hazardous)
-  );
-
-  HazardDetectionUnit rs2_hdu (
-      .enable(~ctrl_unit_op2_imm),
-      .rs_id(IF_ID_reg_inst_out[24:20]),
-      .ex_reg_write(ID_EX_reg_wb_enable),
-      .ex_rd_id(ID_EX_reg_rd_id),
-      .mem_reg_write(EX_MEM_reg_wb_enable),
-      .mem_rd_id(EX_MEM_reg_rd_id),
-      .is_hazardous(rs2_hdu_is_hazardous)
-  );
-
-  wire is_hazardous;
-  assign is_hazardous = rs1_hdu_is_hazardous || rs2_hdu_is_hazardous;
-  assign pc_write_enable = ~is_hazardous;
-  assign IF_ID_reg_write_enable = ~is_hazardous;
 endmodule
