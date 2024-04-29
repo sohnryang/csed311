@@ -83,6 +83,21 @@ module cpu (
       .is_ecall  (ctrl_unit_is_ecall)
   );
 
+  MUX2X1 #(
+      .WIDTH(5)
+  ) rs1_mux (
+      .mux_in_0(IF_ID_reg_inst_out[19:15]),
+      .mux_in_1(5'd17),
+      .sel(ctrl_unit_is_ecall)
+  );
+
+  wire ecall_unit_is_halted;
+  EcallUnit ecall_unit (
+      .is_ecall (ctrl_unit_is_ecall),
+      .x17_data (reg_file_rs1_dout),
+      .is_halted(ecall_unit_is_halted)
+  );
+
   // ---------- Immediate Generator ----------
   wire [31:0] imm_gem_imm;
   ImmediateGenerator imm_gen (
@@ -98,7 +113,7 @@ module cpu (
   wire ID_EX_reg_mem_enable;
   wire ID_EX_reg_mem_write;
   wire ID_EX_reg_op2_imm;
-  wire ID_EX_reg_is_ecall;
+  wire ID_EX_reg_is_halted;
   wire [31:0] ID_EX_reg_rs1;
   wire [31:0] ID_EX_reg_rs2;
   wire [4:0] ID_EX_reg_rd_id;
@@ -110,7 +125,7 @@ module cpu (
       .mem_enable_in(ctrl_unit_mem_enable),
       .mem_write_in(ctrl_unit_mem_write),
       .op2_imm_in(ctrl_unit_op2_imm),
-      .is_ecall_in(ctrl_unit_is_ecall),
+      .is_halted_in(ecall_unit_is_halted),
 
       .rs1_in  (reg_file_rs1_dout),
       .rs2_in  (reg_file_rs2_dout),
@@ -120,7 +135,7 @@ module cpu (
       .mem_enable(ID_EX_reg_mem_enable),
       .mem_write(ID_EX_reg_mem_write),
       .op2_imm(ID_EX_reg_op2_imm),
-      .is_ecall(ID_EX_reg_is_ecall),
+      .is_ecall(ID_EX_reg_is_halted),
 
       .rs1  (ID_EX_reg_rs1),
       .rs2  (ID_EX_reg_rs2),
@@ -183,7 +198,7 @@ module cpu (
   wire EX_MEM_reg_wb_enable;
   wire EX_MEM_reg_mem_enable;
   wire EX_MEM_reg_mem_write;
-  wire EX_MEM_reg_is_ecall;
+  wire EX_MEM_reg_is_halted;
   wire [31:0] EX_MEM_reg_alu_output;
   wire [31:0] EX_MEM_reg_rs2;
   wire [4:0] EX_MEM_reg_rd_id;
@@ -194,7 +209,7 @@ module cpu (
       .wb_enable_in (ID_EX_reg_wb_enable),
       .mem_enable_in(ID_EX_reg_mem_enable),
       .mem_write_in (ID_EX_reg_mem_write),
-      .is_ecall_in  (ID_EX_reg_is_ecall),
+      .is_halted_in (ID_EX_reg_is_halted),
 
       .alu_output_in(alu_alu_result),
       .rs2_in(ID_EX_reg_rs2),
@@ -203,7 +218,7 @@ module cpu (
       .wb_enable (EX_MEM_reg_wb_enable),
       .mem_enable(EX_MEM_reg_mem_enable),
       .mem_write (EX_MEM_reg_mem_write),
-      .is_ecall  (EX_MEM_reg_is_ecall),
+      .is_halted (EX_MEM_reg_is_halted),
 
       .alu_output(EX_MEM_reg_alu_output),
       .rs2(EX_MEM_reg_rs2),
@@ -232,7 +247,7 @@ module cpu (
   );
 
   wire MEM_WB_reg_wb_enable;
-  wire MEM_WB_reg_is_ecall;
+  wire MEM_WB_reg_is_halted;
   wire [4:0] MEM_WB_reg_rd_id;
   wire [31:0] MEM_WB_reg_rd;
   MEMWBRegister mem_wb_reg (
@@ -240,13 +255,13 @@ module cpu (
       .reset(reset),
 
       .wb_enable_in(EX_MEM_reg_wb_enable),
-      .is_ecall_in (EX_MEM_reg_is_ecall),
+      .is_halted_in(EX_MEM_reg_is_halted),
 
       .rd_id_in(EX_MEM_reg_rd_id),
       .rd_in(rd_mux_mux_out),
 
       .wb_enable(MEM_WB_reg_wb_enable),
-      .is_ecall (MEM_WB_reg_is_ecall),
+      .is_halted(MEM_WB_reg_is_halted),
 
       .rd_id(MEM_WB_reg_rd_id),
       .rd(MEM_WB_reg_rd)
