@@ -274,8 +274,6 @@ module cpu (
   wire rs2_is_hazard;
 
   HazardDetectionUnit rs1_hzd_detection_unit (
-      .clk(clk),
-      .reset(reset),
       .id_ex_rs(ID_EX_rs1_data),
       .ex_mem_rd(EX_MEM_rd),
       .ex_mem_reg_write(EX_MEM_reg_write),
@@ -288,8 +286,6 @@ module cpu (
   );
 
   HazardDetectionUnit rs2_hzd_detection_unit (
-      .clk(clk),
-      .reset(reset),
       .id_ex_rs(ID_EX_rs2_data),
       .ex_mem_rd(EX_MEM_rd),
       .ex_mem_reg_write(EX_MEM_reg_write),
