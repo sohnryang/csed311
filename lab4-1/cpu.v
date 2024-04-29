@@ -140,12 +140,12 @@ module cpu (
       .alu_op    (alu_ctrl_unit_alu_op),      // input
       .alu_in_1  (alu_in_1_forwarded_value),  // input  
       .alu_in_2  (alu_in_2_input),            // input
-      .alu_result(alu_alu_result)            // output
+      .alu_result(alu_alu_result)             // output
   );
 
   // ---------- ALU in_2 from IMM or REG ----------
   wire [31:0] alu_in_2_input;
-  mux32bit_2x1 mux_alu_in_2_select (
+  MUX2X1 mux_alu_in_2_select (
       .mux_in_0(alu_in_2_forwarded_value),  // alu_in_2_forward_mux.mux_out
       .mux_in_1(imm_gen_output),            // imm_gen.imm_gen_out -> 
       .sel     (ID_EX_reg_op2_imm),         // (control unit) -> 
@@ -158,21 +158,21 @@ module cpu (
   wire [31:0] alu_in_1_forwarded_value;
   wire [31:0] alu_in_2_forwarded_value;
 
-  mux32bit_2x1 alu_in_1_forward_mux (
+  MUX2X1 alu_in_1_forward_mux (
       .mux_in_0(ID_EX_rs1_data),           // rs1_data @ ID/EX ->
       .mux_in_1(rs1_hazard_value),         // rs1_hzd_detection_unit.value -> 
       .sel     (rs1_is_hazard),            // rs1_hzd_detection_unit.is_hazardous -> 
       .mux_out (alu_in_1_forwarded_value)  // -> alu.alu_in_1
   );
 
-  mux32bit_2x1 alu_in_2_forward_mux (
+  MUX2X1 alu_in_2_forward_mux (
       .mux_in_0(ID_EX_rs2_data),           // rs2_data @ ID/EX -> 
       .mux_in_1(rs2_hazard_value),         // rs2_hzd_detection_unit.value -> 
       .sel     (rs2_is_hazard),            // rs2_hzd_detection_unit.is_hazardous -> 
       .mux_out (alu_in_2_forwarded_value)  // -> alu.alu_in_2
   );
 
-  mux32bit_2x1 alu_in_2_forward_mux (
+  MUX2X1 alu_in_2_forward_mux (
       .mux_in_0(ID_EX_rs2_data),           // rs2_data @ ID/EX -> 
       .mux_in_1(rs2_hazard_value),         // rs2_hzd_detection_unit.value -> 
       .sel     (rs2_is_hazard),            // rs2_hzd_detection_unit.is_hazardous -> 
@@ -224,7 +224,7 @@ module cpu (
 
   // Update MEM/WB pipeline registers here
   wire [31:0] rd_mux_mux_out;
-  mux32bit_2x1 rd_mux (
+  MUX2X1 rd_mux (
       .mux_in_0(EX_MEM_reg_alu_output),
       .mux_in_1(dmem_dout),
       .sel(EX_MEM_reg_mem_enable),
