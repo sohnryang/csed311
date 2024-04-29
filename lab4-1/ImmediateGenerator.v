@@ -9,7 +9,7 @@ module ImmediateGenerator (
   always @(*) begin
     case (opcode)
       `ARITHMETIC_IMM: begin
-        if (func3 == `FUNCT3_SLL || func3 == `FUNCT3_SRL_SRA) imm = {{27'b0, inst[24:20]}};
+        if (func3 == `FUNCT3_SLL || func3 == `FUNCT3_SRL) imm = {{27'b0, inst[24:20]}};
         else imm = {{21{inst[31]}}, inst[30:20]};
       end
       `BRANCH: imm = {{20{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
