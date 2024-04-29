@@ -79,6 +79,7 @@ module cpu (
   // ---------- Register File ----------
   wire [31:0] reg_file_rd_din;
   wire reg_file_write_enable;
+  wire [4:0] reg_file_rd;
   wire [31:0] reg_file_rs1_dout;
   wire [31:0] reg_file_rs2_dout;
   RegisterFile reg_file (
@@ -86,7 +87,7 @@ module cpu (
       .clk         (clk),                        // input
       .rs1         (rs1_mux_mux_out),            // input
       .rs2         (IF_ID_reg_inst_out[24:20]),  // input
-      .rd          (IF_ID_reg_inst_out[11:7]),   // input
+      .rd          (reg_file_rd),                // input
       .rd_din      (reg_file_rd_din),            // input
       .write_enable(reg_file_write_enable),      // input
       .rs1_dout    (reg_file_rs1_dout),          // output
@@ -248,6 +249,9 @@ module cpu (
       .rd_id(MEM_WB_reg_rd_id),
       .rd(MEM_WB_reg_rd)
   );
+  assign reg_file_write_enable = MEM_WB_reg_wb_enable;
+  assign reg_file_rd = MEM_WB_reg_rd_id;
+  assign reg_file_rd_din = MEM_WB_reg_rd;
 
   // ---------- Hazard Detection Unit ----------
   wire rs1_hdu_is_hazardous;
