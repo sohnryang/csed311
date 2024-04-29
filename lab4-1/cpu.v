@@ -149,9 +149,6 @@ module cpu (
   assign IF_ID_reg_write_enable = ~is_hazardous;
 
   // Update ID/EX pipeline registers here
-  wire [31:0] ID_EX_reg_rs1_in;
-  wire [31:0] ID_EX_reg_rs2_in;
-  wire [4:0] ID_EX_reg_rd_id_in;
   wire ID_EX_reg_wb_enable;
   wire ID_EX_reg_mem_enable;
   wire ID_EX_reg_mem_write;
