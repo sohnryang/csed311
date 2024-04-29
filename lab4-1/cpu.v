@@ -117,6 +117,7 @@ module cpu (
   wire [31:0] ID_EX_reg_rs1;
   wire [31:0] ID_EX_reg_rs2;
   wire [4:0] ID_EX_reg_rd_id;
+  wire [31:0] ID_EX_reg_inst;
   IDEXRegister id_ex_reg (
       .clk  (clk),
       .reset(reset),
@@ -130,6 +131,7 @@ module cpu (
       .rs1_in  (reg_file_rs1_dout),
       .rs2_in  (reg_file_rs2_dout),
       .rd_id_in(IF_ID_reg_inst_out[11:7]),
+      .inst_in (IF_ID_reg_inst_out),
 
       .wb_enable(ID_EX_reg_wb_enable),
       .mem_enable(ID_EX_reg_mem_enable),
@@ -139,14 +141,15 @@ module cpu (
 
       .rs1  (ID_EX_reg_rs1),
       .rs2  (ID_EX_reg_rs2),
-      .rd_id(ID_EX_reg_rd_id)
+      .rd_id(ID_EX_reg_rd_id),
+      .inst (ID_EX_reg_inst)
   );
 
   // ---------- ALU Control Unit ----------
   wire [3:0] alu_ctrl_unit_alu_op;
   ALUControlUnit alu_ctrl_unit (
-      .part_of_inst({IR[31:25], IR[14:12], IR[6:0]}),  // input
-      .alu_op      (alu_ctrl_unit_alu_op)              // output
+      .part_of_inst({ID_EX_reg_inst[31:25], ID_EX_reg_inst[14:12], ID_EX_reg_inst[6:0]}),  // input
+      .alu_op      (alu_ctrl_unit_alu_op)                                                  // output
   );
 
   // ---------- ALU ----------
