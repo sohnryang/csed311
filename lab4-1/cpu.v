@@ -140,7 +140,7 @@ module cpu (
       .alu_op    (alu_ctrl_unit_alu_op),      // input
       .alu_in_1  (alu_in_1_forwarded_value),  // input  
       .alu_in_2  (alu_in_2_input),            // input
-      .alu_result(alu_alu_result),            // output
+      .alu_result(alu_alu_result)            // output
   );
 
   // ---------- ALU in_2 from IMM or REG ----------
