@@ -12,18 +12,13 @@ module HazardDetectionUnit (
     input [4:0] mem_rd_id,
 
     // ----- Output -----
-    output reg [1:0] is_hazardous  // Is instruction hazardous?
+    output reg is_hazardous  // Is instruction hazardous?
 );
   always @(*) begin
-    if (enable && (rs_id != 5'b0)) begin
-      if ((rs_id == ex_rd_id) && ex_reg_write) begin
-        is_hazardous = 2'b01;
-      end else if ((rs_id == mem_rd_id) && mem_reg_write) begin
-        is_hazardous = 2'b10;
-      end else
-        is_hazardous = 2'b00;
+    if (enable && rs_id != 5'b0) begin
+      is_hazardous = ((rs_id == ex_rd_id) && ex_reg_write) || ((rs_id==mem_rd_id) && mem_reg_write);
     end else begin
-      is_hazardous = 2'b00;
+      is_hazardous = 0;
     end
   end
 endmodule

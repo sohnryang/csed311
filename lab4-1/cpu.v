@@ -86,9 +86,9 @@ module cpu (
       .clk         (clk),                        // input
       .rs1         (rs1_mux_mux_out),            // input
       .rs2         (IF_ID_reg_inst_out[24:20]),  // input
-      .rd          (MEM_WB_reg_rd_id),   // input
-      .rd_din      (MEM_WB_reg_rd),            // input
-      .write_enable(MEM_WB_reg_wb_enable),      // input
+      .rd          (IF_ID_reg_inst_out[11:7]),   // input
+      .rd_din      (reg_file_rd_din),            // input
+      .write_enable(reg_file_write_enable),      // input
       .rs1_dout    (reg_file_rs1_dout),          // output
       .rs2_dout    (reg_file_rs2_dout),          // output
       .print_reg   (print_reg)
@@ -171,36 +171,11 @@ module cpu (
   wire [31:0] alu_alu_result;
   ALU alu (
       .alu_op    (alu_ctrl_unit_alu_op),  // input
-      .alu_in_1  (alu_in_1_hdu_sel_out),         // input  
-      .alu_in_2  (alu_in_2_hdu_sel_out),        // input
+      .alu_in_1  (ID_EX_reg_rs1),         // input  
+      .alu_in_2  (alu_in_2_input),        // input
       .alu_result(alu_alu_result)         // output
   );
 
-  // ---------- ALU Hazard apply ----------
-  wire [31:0] alu_in_1_hdu_sel_out;
-  wire [31:0] alu_in_2_hdu_sel_out;
-
-  MUX4X1 alu_in_1_hdu_sel(
-      .mux_in_0(ID_EX_reg_rs1),  // input, no hazard
-      .mux_in_1(EX_MEM_reg_alu_output),  // input, from EX/MEM
-      .mux_in_2(MEM_WB_reg_rd),  // input, from MEM/WB
-      .mux_in_3(32'h0),
-
-      .sel(rs1_hdu_is_hazardous),
-
-      .mux_out(alu_in_1_hdu_sel_out)
-  );
-
-  MUX4X1 alu_in_2_hdu_sel(
-      .mux_in_0(alu_in_2_input),  // input, no hazard
-      .mux_in_1(EX_MEM_reg_alu_output),  // input, from EX/MEM
-      .mux_in_2(MEM_WB_reg_rd),  // input, from MEM/WB
-      .mux_in_3(32'h0),
-
-      .sel(rs2_hdu_is_hazardous),
-
-      .mux_out(alu_in_2_hdu_sel_out)
-  );
   // Update EX/MEM pipeline registers here
   wire EX_MEM_reg_wb_enable;
   wire EX_MEM_reg_mem_enable;
@@ -275,12 +250,8 @@ module cpu (
   );
 
   // ---------- Hazard Detection Unit ----------
-  wire [1:0] rs1_hdu_is_hazardous;
-  wire [1:0] rs2_hdu_is_hazardous;
-
-  // 0 -> No hazard
-  // 1 -> Hazard from EX/MEM
-  // 2 -> Hazard from MEM/WB
+  wire rs1_hdu_is_hazardous;
+  wire rs2_hdu_is_hazardous;
 
   HazardDetectionUnit rs1_hdu (
       .enable(1),
@@ -303,7 +274,7 @@ module cpu (
   );
 
   wire is_hazardous;
-  assign is_hazardous = (rs1_hdu_is_hazardous != 2'b00) || (rs2_hdu_is_hazardous != 2'b00);
+  assign is_hazardous = rs1_hdu_is_hazardous || rs2_hdu_is_hazardous;
   assign pc_write_enable = ~is_hazardous;
   assign IF_ID_reg_write_enable = ~is_hazardous;
 endmodule
