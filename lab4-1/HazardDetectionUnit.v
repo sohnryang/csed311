@@ -1,35 +1,24 @@
 module HazardDetectionUnit (
     // ----- ALU Input Register: To Be Compared -----
-    input [4:0] id_ex_rs,
+    input enable,
+    input [4:0] rs_id,
 
     // ----- Distance 1 Hazard Detection: From EX/MEM Stage -----
-    input [ 4:0] ex_mem_rd,
-    input [31:0] ex_mem_reg_write,
-    input [31:0] ex_mem_alu_out,
+    input ex_reg_write,
+    input [4:0] ex_rd_id,
 
     // ----- Distance 2 Hazard Detection: From MEM/WB Stage -----
-    input [ 4:0] mem_wb_rd,
-    input [31:0] mem_wb_reg_write,
-    input [31:0] mem_wb_mem_to_reg,
+    input mem_reg_write,
+    input [4:0] mem_rd_id,
 
     // ----- Output -----
-    output reg [31:0] value,  // Value to be forwarded
     output reg is_hazardous  // Is instruction hazardous?
 );
   always @(*) begin
-    if ((id_ex_rs == ex_mem_rd) && (id_ex_rs != 5'b00000) && ex_mem_reg_write == 1'b1) begin    // Distance 1 Hazard condition
-      is_hazardous = 1'b1;
-      value = ex_mem_alu_out;  // Forward EX/MEM stage ALU output to ALU operand
-    end else if ((id_ex_rs == mem_wb_rd) && (id_ex_rs != 5'b00000) && mem_wb_reg_write == 1'b1) begin   // Distance 2 Hazard condition
-      is_hazardous = 1'b1;
-      value = mem_wb_mem_to_reg;  // Forward MEM/WB stage Memory contents to ALU operand
+    if (enable && rs_id != 5'b0) begin
+      is_hazardous = ((rs_id == ex_rd_id) && ex_reg_write) || ((rs_id==mem_rd_id) && mem_reg_write);
     end else begin
-      is_hazardous = 1'b0;
-      value = 32'h00000000;
-    end
-    if (reset) begin
-      is_hazardous = 1'b0;
-      value = 32'h00000000;
+      is_hazardous = 0;
     end
   end
 endmodule

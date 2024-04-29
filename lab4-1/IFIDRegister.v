@@ -9,6 +9,6 @@ module IFIDRegister (
 );
   always @(posedge clk) begin
     if (reset) inst_out <= 32'b0;
-    else if (inst_reg_write) inst_out <= inst_in;
+    else if (write_enable) inst_out <= inst_in;
   end
 endmodule

@@ -1,6 +1,6 @@
 module EcallUnit (
     input is_ecall,
-    input x17_data,
+    input [31:0] x17_data,
 
     output is_halted
 );

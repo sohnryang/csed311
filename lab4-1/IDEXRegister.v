@@ -12,6 +12,7 @@ module IDEXRegister (
     input [31:0] rs2_in,
     input [ 4:0] rd_id_in,
     input [31:0] inst_in,
+    input [31:0] imm_in,
 
     output reg wb_enable,
     output reg mem_enable,
@@ -22,7 +23,8 @@ module IDEXRegister (
     output reg [31:0] rs1,
     output reg [31:0] rs2,
     output reg [ 4:0] rd_id,
-    output reg [31:0] inst
+    output reg [31:0] inst,
+    output reg [31:0] imm
 );
   always @(posedge clk) begin
     if (reset) begin
@@ -36,6 +38,7 @@ module IDEXRegister (
       rs2 <= 32'b0;
       rd_id <= 5'b0;
       inst <= 32'b0;
+      imm <= 32'b0;
     end else begin
       wb_enable <= wb_enable_in;
       mem_enable <= mem_enable_in;
@@ -47,6 +50,7 @@ module IDEXRegister (
       rs2 <= rs2_in;
       rd_id <= rd_id_in;
       inst <= inst_in;
+      imm <= imm_in;
     end
   end
 endmodule

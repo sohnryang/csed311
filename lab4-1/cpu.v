@@ -27,6 +27,7 @@ module cpu (
       .next_pc(pc_next_pc),  // input
       .current_pc(pc_current_pc)  // output
   );
+  assign pc_next_pc = pc_current_pc + 4;
 
   // ---------- Instruction Memory ----------
   wire [31:0] imem_dout;
@@ -50,24 +51,6 @@ module cpu (
       .inst_out(IF_ID_reg_inst_out)
   );
 
-  // ---------- Register File ----------
-  wire [31:0] reg_file_rd_din;
-  wire reg_file_write_enable;
-  wire [31:0] reg_file_rs1_dout;
-  wire [31:0] reg_file_rs2_dout;
-  RegisterFile reg_file (
-      .reset       (reset),                      // input
-      .clk         (clk),                        // input
-      .rs1         (IF_ID_reg_inst_out[19:15]),  // input
-      .rs2         (IF_ID_reg_inst_out[24:20]),  // input
-      .rd          (IF_ID_reg_inst_out[11:7]),   // input
-      .rd_din      (reg_file_rd_din),            // input
-      .write_enable(reg_file_write_enable),      // input
-      .rs1_dout    (reg_file_rs1_dout),          // output
-      .rs2_dout    (reg_file_rs2_dout),          // output
-      .print_reg   (print_reg)
-  );
-
   // ---------- Control Unit ----------
   wire ctrl_unit_wb_enable;
   wire ctrl_unit_mem_enable;
@@ -83,12 +66,32 @@ module cpu (
       .is_ecall  (ctrl_unit_is_ecall)
   );
 
+  wire [4:0] rs1_mux_mux_out;
   MUX2X1 #(
       .WIDTH(5)
   ) rs1_mux (
       .mux_in_0(IF_ID_reg_inst_out[19:15]),
       .mux_in_1(5'd17),
-      .sel(ctrl_unit_is_ecall)
+      .sel(ctrl_unit_is_ecall),
+      .mux_out(rs1_mux_mux_out)
+  );
+
+  // ---------- Register File ----------
+  wire [31:0] reg_file_rd_din;
+  wire reg_file_write_enable;
+  wire [31:0] reg_file_rs1_dout;
+  wire [31:0] reg_file_rs2_dout;
+  RegisterFile reg_file (
+      .reset       (reset),                      // input
+      .clk         (clk),                        // input
+      .rs1         (rs1_mux_mux_out),            // input
+      .rs2         (IF_ID_reg_inst_out[24:20]),  // input
+      .rd          (IF_ID_reg_inst_out[11:7]),   // input
+      .rd_din      (reg_file_rd_din),            // input
+      .write_enable(reg_file_write_enable),      // input
+      .rs1_dout    (reg_file_rs1_dout),          // output
+      .rs2_dout    (reg_file_rs2_dout),          // output
+      .print_reg   (print_reg)
   );
 
   wire ecall_unit_is_halted;
@@ -99,7 +102,7 @@ module cpu (
   );
 
   // ---------- Immediate Generator ----------
-  wire [31:0] imm_gem_imm;
+  wire [31:0] imm_gen_imm;
   ImmediateGenerator imm_gen (
       .inst(IF_ID_reg_inst_out),  // input
       .imm(imm_gen_imm)  // output
@@ -118,6 +121,7 @@ module cpu (
   wire [31:0] ID_EX_reg_rs2;
   wire [4:0] ID_EX_reg_rd_id;
   wire [31:0] ID_EX_reg_inst;
+  wire [31:0] ID_EX_reg_imm;
   IDEXRegister id_ex_reg (
       .clk  (clk),
       .reset(reset),
@@ -132,17 +136,19 @@ module cpu (
       .rs2_in  (reg_file_rs2_dout),
       .rd_id_in(IF_ID_reg_inst_out[11:7]),
       .inst_in (IF_ID_reg_inst_out),
+      .imm_in  (imm_gen_imm),
 
       .wb_enable(ID_EX_reg_wb_enable),
       .mem_enable(ID_EX_reg_mem_enable),
       .mem_write(ID_EX_reg_mem_write),
       .op2_imm(ID_EX_reg_op2_imm),
-      .is_ecall(ID_EX_reg_is_halted),
+      .is_halted(ID_EX_reg_is_halted),
 
       .rs1  (ID_EX_reg_rs1),
       .rs2  (ID_EX_reg_rs2),
       .rd_id(ID_EX_reg_rd_id),
-      .inst (ID_EX_reg_inst)
+      .inst (ID_EX_reg_inst),
+      .imm  (ID_EX_reg_imm)
   );
 
   // ---------- ALU Control Unit ----------
@@ -152,49 +158,22 @@ module cpu (
       .alu_op      (alu_ctrl_unit_alu_op)                                                  // output
   );
 
-  // ---------- ALU ----------
-  wire [31:0] alu_alu_result;
-  ALU alu (
-      .alu_op    (alu_ctrl_unit_alu_op),      // input
-      .alu_in_1  (alu_in_1_forwarded_value),  // input  
-      .alu_in_2  (alu_in_2_input),            // input
-      .alu_result(alu_alu_result)             // output
-  );
-
   // ---------- ALU in_2 from IMM or REG ----------
   wire [31:0] alu_in_2_input;
   MUX2X1 mux_alu_in_2_select (
-      .mux_in_0(alu_in_2_forwarded_value),  // alu_in_2_forward_mux.mux_out
-      .mux_in_1(imm_gen_output),            // imm_gen.imm_gen_out -> 
-      .sel     (ID_EX_reg_op2_imm),         // (control unit) -> 
-      .mux_out (alu_in_2_input)             // -> alu.alu_in_2
+      .mux_in_0(ID_EX_reg_rs2),      // alu_in_2_forward_mux.mux_out
+      .mux_in_1(ID_EX_reg_imm),      // imm_gen.imm_gen_out -> 
+      .sel     (ID_EX_reg_op2_imm),  // (control unit) -> 
+      .mux_out (alu_in_2_input)      // -> alu.alu_in_2
   );
 
-
-
-  // ----------- ALU input multiplexer (For Forwarding) -----------
-  wire [31:0] alu_in_1_forwarded_value;
-  wire [31:0] alu_in_2_forwarded_value;
-
-  MUX2X1 alu_in_1_forward_mux (
-      .mux_in_0(ID_EX_rs1_data),           // rs1_data @ ID/EX ->
-      .mux_in_1(rs1_hazard_value),         // rs1_hzd_detection_unit.value -> 
-      .sel     (rs1_is_hazard),            // rs1_hzd_detection_unit.is_hazardous -> 
-      .mux_out (alu_in_1_forwarded_value)  // -> alu.alu_in_1
-  );
-
-  MUX2X1 alu_in_2_forward_mux (
-      .mux_in_0(ID_EX_rs2_data),           // rs2_data @ ID/EX -> 
-      .mux_in_1(rs2_hazard_value),         // rs2_hzd_detection_unit.value -> 
-      .sel     (rs2_is_hazard),            // rs2_hzd_detection_unit.is_hazardous -> 
-      .mux_out (alu_in_2_forwarded_value)  // -> alu.alu_in_2
-  );
-
-  MUX2X1 alu_in_2_forward_mux (
-      .mux_in_0(ID_EX_rs2_data),           // rs2_data @ ID/EX -> 
-      .mux_in_1(rs2_hazard_value),         // rs2_hzd_detection_unit.value -> 
-      .sel     (rs2_is_hazard),            // rs2_hzd_detection_unit.is_hazardous -> 
-      .mux_out (alu_in_2_forwarded_value)  // -> mux_alu_in_2_select.mux_in_0
+  // ---------- ALU ----------
+  wire [31:0] alu_alu_result;
+  ALU alu (
+      .alu_op    (alu_ctrl_unit_alu_op),  // input
+      .alu_in_1  (ID_EX_reg_rs1),         // input  
+      .alu_in_2  (alu_in_2_input),        // input
+      .alu_result(alu_alu_result)         // output
   );
 
   // Update EX/MEM pipeline registers here
@@ -264,39 +243,38 @@ module cpu (
       .rd_in(rd_mux_mux_out),
 
       .wb_enable(MEM_WB_reg_wb_enable),
-      .is_halted(MEM_WB_reg_is_halted),
+      .is_halted(is_halted),
 
       .rd_id(MEM_WB_reg_rd_id),
       .rd(MEM_WB_reg_rd)
   );
 
   // ---------- Hazard Detection Unit ----------
-  wire [31:0] rs1_hazard_value;
-  wire [31:0] rs2_hazard_value;
-  wire rs1_is_hazard;
-  wire rs2_is_hazard;
+  wire rs1_hdu_is_hazardous;
+  wire rs2_hdu_is_hazardous;
 
-  HazardDetectionUnit rs1_hzd_detection_unit (
-      .id_ex_rs(ID_EX_rs1_data),
-      .ex_mem_rd(EX_MEM_rd),
-      .ex_mem_reg_write(EX_MEM_reg_write),
-      .ex_mem_alu_out(EX_MEM_alu_out),
-      .mem_wb_rd(MEM_WB_rd),
-      .mem_wb_reg_write(MEM_WB_reg_write),
-      .mem_wb_mem_to_reg(MEM_WB_mem_to_reg_src_1),
-      .value(rs1_hazard_value),
-      .is_hazardous(rs1_is_hazard)
+  HazardDetectionUnit rs1_hdu (
+      .enable(1),
+      .rs_id(rs1_mux_mux_out),
+      .ex_reg_write(ID_EX_reg_wb_enable),
+      .ex_rd_id(ID_EX_reg_rd_id),
+      .mem_reg_write(EX_MEM_reg_wb_enable),
+      .mem_rd_id(EX_MEM_reg_rd_id),
+      .is_hazardous(rs1_hdu_is_hazardous)
   );
 
-  HazardDetectionUnit rs2_hzd_detection_unit (
-      .id_ex_rs(ID_EX_rs2_data),
-      .ex_mem_rd(EX_MEM_rd),
-      .ex_mem_reg_write(EX_MEM_reg_write),
-      .ex_mem_alu_out(EX_MEM_alu_out),
-      .mem_wb_rd(MEM_WB_rd),
-      .mem_wb_reg_write(MEM_WB_reg_write),
-      .mem_wb_mem_to_reg(MEM_WB_mem_to_reg_src_2),
-      .value(rs2_hazard_value),
-      .is_hazardous(rs2_is_hazard)
+  HazardDetectionUnit rs2_hdu (
+      .enable(~ctrl_unit_op2_imm),
+      .rs_id(IF_ID_reg_inst_out[24:20]),
+      .ex_reg_write(ID_EX_reg_wb_enable),
+      .ex_rd_id(ID_EX_reg_rd_id),
+      .mem_reg_write(EX_MEM_reg_wb_enable),
+      .mem_rd_id(EX_MEM_reg_rd_id),
+      .is_hazardous(rs2_hdu_is_hazardous)
   );
+
+  wire is_hazardous;
+  assign is_hazardous = rs1_hdu_is_hazardous || rs2_hdu_is_hazardous;
+  assign pc_write_enable = ~is_hazardous;
+  assign IF_ID_reg_write_enable = ~is_hazardous;
 endmodule
