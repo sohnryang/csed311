@@ -20,8 +20,8 @@ module ALUControlUnit (
             else alu_op = `ALU_ERR;
           end
           `FUNCT3_SLL: alu_op = `ALU_SLL;
-          // `FUNCT3_SLT: alu_op = `ALU_SLT;
-          // `FUNCT3_SLTU: alu_op = `ALU_SLTU;
+          `FUNCT3_SLT: alu_op = `ALU_SLT;
+          `FUNCT3_SLTU: alu_op = `ALU_SLTU;
           `FUNCT3_XOR: alu_op = `ALU_XOR;
           `FUNCT3_SRL: begin
             if (func7 == `FUNCT7_SUB) alu_op = `ALU_SRA;
@@ -36,8 +36,8 @@ module ALUControlUnit (
       `ARITHMETIC_IMM: begin
         case (func3)
           `FUNCT3_ADD: alu_op = `ALU_ADD;
-          // `FUNCT3_SLT: alu_op = `ALU_SLT;
-          // `FUNCT3_SLTU: alu_op = `ALU_SLTU;
+          `FUNCT3_SLT: alu_op = `ALU_SLT;
+          `FUNCT3_SLTU: alu_op = `ALU_SLTU;
           `FUNCT3_XOR: alu_op = `ALU_XOR;
           `FUNCT3_OR: alu_op = `ALU_OR;
           `FUNCT3_AND: alu_op = `ALU_AND;
@@ -56,8 +56,8 @@ module ALUControlUnit (
           `FUNCT3_BNE: alu_op = `ALU_NE;
           `FUNCT3_BLT: alu_op = `ALU_SLT;
           `FUNCT3_BGE: alu_op = `ALU_GE;
-          // `FUNCT3_BLTU: alu_op = `ALU_SLTU;
-          // `FUNCT3_BGEU: alu_op = `ALU_GEU;
+          `FUNCT3_BLTU: alu_op = `ALU_SLTU;
+          `FUNCT3_BGEU: alu_op = `ALU_GEU;
           default: alu_op = `ALU_ERR;
         endcase
       end
