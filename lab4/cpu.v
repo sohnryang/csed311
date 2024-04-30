@@ -27,7 +27,11 @@ module cpu (
       .next_pc(pc_next_pc),  // input
       .current_pc(pc_current_pc)  // output
   );
-  assign pc_next_pc = pc_current_pc + 4;
+
+  BranchPredictor branch_predictor (
+      .current_pc  (pc_current_pc),
+      .predicted_pc(pc_next_pc)
+  );
 
   // ---------- Instruction Memory ----------
   wire [31:0] imem_dout;
