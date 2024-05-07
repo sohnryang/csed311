@@ -17,7 +17,7 @@ module BranchPredictor (
 );
 
   // ---------- Global Branch History Register ----------
-  reg [`BHSR_WIDTH - 1:0] bhsr;       // 10-bit BHSR 
+  reg bhsr[`BHSR_WIDTH - 1:0];       // 10-bit BHSR 
   // ---------- Pattern History Table ----------
   reg [`BHSR_ENTRIES - 1:0] pht[1:0];
   // ---------- Branch Target Buffer ----------
@@ -48,6 +48,12 @@ module BranchPredictor (
   // ---------- Sync. Branch Predictor state update ----------
   always @(posedge clk) begin
     if (rst) begin
+        bhsr <= 0;
+        for (i = 0; i < `BHSR_ENTRIES; i = i + 1) begin
+          pht[i] <= 2'b00;
+          btb_tag_tbl[i] <= 0;
+          btb_target_tbl[i] <= 0;
+        end
     end
 
     assign update_pc_msb = branch_inst_address[31: `BHSR_WIDTH];
@@ -57,26 +63,30 @@ module BranchPredictor (
     /* Updating 2-bit saturatrion counter FSM state */
     if(predictor_wrong == 1'b0) begin   // Predictor Correct
       if(branch_inst_address + 4 == resolved_next_pc) begin // Pred: NT, Actual: NT
-        pht[update_pht_index] = (pht[update_pht_index] == `STRONG_NOT_TAKEN ? `STRONG_NOT_TAKEN : pht[update_pht_index] - 1); // Decrease counter
-        btb_tag_tbl[update_pht_index] = update_pc_msb;
-        btb_target_tbl[update_pht_index] = resolved_next_pc;
+        pht[update_pht_index] <= (pht[update_pht_index] == `STRONG_NOT_TAKEN ? `STRONG_NOT_TAKEN : pht[update_pht_index] - 1); // Decrease counter
+        btb_tag_tbl[update_pht_index] <= update_pc_msb;
+        btb_target_tbl[update_pht_index] <= resolved_next_pc;
+        bhsr <= {bhsr[9:1], 0};
       end
       else begin  // Pred: T, Actual: T
-        pht[update_pht_index] = (pht[update_pht_index] == `STRONG_TAKEN ? `STRONG_TAKEN : pht[update_pht_index] + 1); // Increase Counter
-        btb_tag_tbl[update_pht_index] = update_pc_msb;
-        btb_target_tbl[update_pht_index] = resolved_next_pc;
+        pht[update_pht_index] <= (pht[update_pht_index] == `STRONG_TAKEN ? `STRONG_TAKEN : pht[update_pht_index] + 1); // Increase Counter
+        btb_tag_tbl[update_pht_index] <= update_pc_msb;
+        btb_target_tbl[update_pht_index] <= resolved_next_pc;
+        bhsr <= {bhsr[9:1], 1};
       end
     end
     else begin  // Predictor Wrong
       if(branch_inst_address + 4 == resolved_next_pc) begin // Predict: NT, Actual: T
-        pht[update_pht_index] = (pht[update_pht_index] == `STRONG_TAKEN ? `STRONG_TAKEN : pht[update_pht_index] + 1); // Increase Counter
-        btb_tag_tbl[update_pht_index] = update_pc_msb;
-        btb_target_tbl[update_pht_index] = resolved_next_pc;
+        pht[update_pht_index] <= (pht[update_pht_index] == `STRONG_TAKEN ? `STRONG_TAKEN : pht[update_pht_index] + 1); // Increase Counter
+        btb_tag_tbl[update_pht_index] <= update_pc_msb;
+        btb_target_tbl[update_pht_index] <= resolved_next_pc;
+        bhsr <= {bhsr[9:1], 1};
       end
       else begin  // Pred: T, Actual: NT
-        pht[update_pht_index] = (pht[update_pht_index] == `STRONG_NOT_TAKEN ? `STRONG_NOT_TAKEN : pht[update_pht_index] - 1); // Decrease counter
-        btb_tag_tbl[update_pht_index] = update_pc_msb;
-        btb_target_tbl[update_pht_index] = resolved_next_pc;
+        pht[update_pht_index] <= (pht[update_pht_index] == `STRONG_NOT_TAKEN ? `STRONG_NOT_TAKEN : pht[update_pht_index] - 1); // Decrease counter
+        btb_tag_tbl[update_pht_index] <= update_pc_msb;
+        btb_target_tbl[update_pht_index] <= resolved_next_pc;
+        bhsr <= {bhsr[9:1], 0};
       end
 
     assign predicted_pc = 32'h00000000; // NOT returning predicted PC
