@@ -196,7 +196,7 @@ module cpu (
       .op2_imm_in(ctrl_unit_op2_imm),
       .is_halted_in(ecall_unit_is_halted & ~is_hazardous & ~IF_ID_reg_bubble),
       .ex_forwardable_in(ctrl_unit_ex_forwardable & ~is_hazardous & ~IF_ID_reg_bubble),
-      .valid_in(~ctrl_hdu_is_hazardous & IF_ID_reg_valid & ~IF_ID_reg_bubble),
+      .valid_in(~ctrl_hdu_is_hazardous & IF_ID_reg_valid & ~IF_ID_reg_bubble & ~is_hazardous),
       .is_branch_in(ctrl_unit_is_branch),
       .is_rd_to_pc_in(ctrl_unit_is_rd_to_pc),
 
