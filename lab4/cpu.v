@@ -68,24 +68,24 @@ module cpu (
   wire ctrl_unit_mem_enable;
   wire ctrl_unit_mem_write;
   wire ctrl_unit_op1_pc;
-  wire ctrl_unit_op2_imm;
+  wire [1:0] ctrl_unit_op2_sel;
   wire ctrl_unit_is_ecall;
   wire ctrl_unit_rs2_used;
   wire ctrl_unit_ex_forwardable;
   wire ctrl_unit_is_branch;
-  wire ctrl_unit_is_rd_to_pc;
+  wire ctrl_unit_is_jalr;
   ControlUnit ctrl_unit (
       .opcode        (IF_ID_reg_inst_out[6:0]),   // input
       .wb_enable     (ctrl_unit_wb_enable),
       .mem_enable    (ctrl_unit_mem_enable),
       .mem_write     (ctrl_unit_mem_write),
       .op1_pc        (ctrl_unit_op1_pc),
-      .op2_imm       (ctrl_unit_op2_imm),
+      .op2_sel       (ctrl_unit_op2_sel),
       .is_ecall      (ctrl_unit_is_ecall),
       .rs2_used      (ctrl_unit_rs2_used),
       .ex_forwardable(ctrl_unit_ex_forwardable),
       .is_branch     (ctrl_unit_is_branch),
-      .is_rd_to_pc   (ctrl_unit_is_rd_to_pc)
+      .is_jalr       (ctrl_unit_is_jalr)
   );
 
   wire [4:0] rs1_mux_mux_out;
@@ -171,12 +171,12 @@ module cpu (
   wire ID_EX_reg_mem_enable;
   wire ID_EX_reg_mem_write;
   wire ID_EX_reg_op1_pc;
-  wire ID_EX_reg_op2_imm;
+  wire [1:0] ID_EX_reg_op2_sel;
   wire ID_EX_reg_is_halted;
   wire ID_EX_reg_ex_forwardable;
   wire ID_EX_reg_valid;
   wire ID_EX_reg_is_branch;
-  wire ID_EX_reg_is_rd_to_pc;
+  wire ID_EX_reg_is_jalr;
   wire [31:0] ID_EX_reg_rs1;
   wire [31:0] ID_EX_reg_rs2;
   wire [4:0] ID_EX_reg_rs1_id;
@@ -193,12 +193,12 @@ module cpu (
       .mem_enable_in(ctrl_unit_mem_enable),
       .mem_write_in(ctrl_unit_mem_write & ~is_hazardous & ~IF_ID_reg_bubble),
       .op1_pc_in(ctrl_unit_op1_pc),
-      .op2_imm_in(ctrl_unit_op2_imm),
+      .op2_sel_in(ctrl_unit_op2_sel),
       .is_halted_in(ecall_unit_is_halted & ~is_hazardous & ~IF_ID_reg_bubble),
       .ex_forwardable_in(ctrl_unit_ex_forwardable & ~is_hazardous & ~IF_ID_reg_bubble),
       .valid_in(~ctrl_hdu_is_hazardous & IF_ID_reg_valid & ~IF_ID_reg_bubble & ~is_hazardous),
       .is_branch_in(ctrl_unit_is_branch),
-      .is_rd_to_pc_in(ctrl_unit_is_rd_to_pc),
+      .is_jalr_in(ctrl_unit_is_jalr),
 
       .rs1_in(reg_file_rs1_dout),
       .rs2_in(reg_file_rs2_dout),
@@ -213,12 +213,12 @@ module cpu (
       .mem_enable(ID_EX_reg_mem_enable),
       .mem_write(ID_EX_reg_mem_write),
       .op1_pc(ID_EX_reg_op1_pc),
-      .op2_imm(ID_EX_reg_op2_imm),
+      .op2_sel(ID_EX_reg_op2_sel),
       .is_halted(ID_EX_reg_is_halted),
       .ex_forwardable(ID_EX_reg_ex_forwardable),
       .valid(ID_EX_reg_valid),
       .is_branch(ID_EX_reg_is_branch),
-      .is_rd_to_pc(ID_EX_reg_is_rd_to_pc),
+      .is_jalr(ID_EX_reg_is_jalr),
 
       .rs1(ID_EX_reg_rs1),
       .rs2(ID_EX_reg_rs2),
@@ -293,10 +293,12 @@ module cpu (
 
   // ---------- ALU in_2 from IMM or REG ----------
   wire [31:0] alu_in_2_input;
-  MUX2X1 mux_alu_in_2_select (
+  MUX4X1 mux_alu_in_2_select (
       .mux_in_0(rs2_fwd_mux_mux_out),  // alu_in_2_forward_mux.mux_out
       .mux_in_1(ID_EX_reg_imm),        // imm_gen.imm_gen_out -> 
-      .sel     (ID_EX_reg_op2_imm),    // (control unit) -> 
+      .mux_in_2(32'd4),
+      .mux_in_3(32'b0),
+      .sel     (ID_EX_reg_op2_sel),    // (control unit) -> 
       .mux_out (alu_in_2_input)        // -> alu.alu_in_2
   );
 
@@ -312,8 +314,10 @@ module cpu (
   wire [31:0] pc_gen_next_pc;
   PCGenerator pc_gen (
       .is_branch(ID_EX_reg_is_branch),
-      .is_rd_to_pc(ID_EX_reg_is_rd_to_pc),
+      .op1_pc(ID_EX_reg_op1_pc),
+      .is_jalr(ID_EX_reg_is_jalr),
       .current_pc(ID_EX_reg_pc),
+      .rs1_data(rs1_fwd_mux_mux_out),
       .imm(ID_EX_reg_imm),
       .alu_result(alu_alu_result),
 
