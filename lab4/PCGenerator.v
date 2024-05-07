@@ -2,7 +2,6 @@ module PCGenerator (
     input is_branch,
     input is_rd_to_pc,
     input [31:0] current_pc,
-    input [31:0] rs1_data,
     input [31:0] imm,
     input [31:0] alu_result,
 

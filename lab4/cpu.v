@@ -314,7 +314,6 @@ module cpu (
       .is_branch(ID_EX_reg_is_branch),
       .is_rd_to_pc(ID_EX_reg_is_rd_to_pc),
       .current_pc(ID_EX_reg_pc),
-      .rs1_data(ID_EX_reg_rs1),
       .imm(ID_EX_reg_imm),
       .alu_result(alu_alu_result),
 
