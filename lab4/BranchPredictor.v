@@ -2,7 +2,7 @@
 
 module BranchPredictor (
     input clk,
-
+    input rst,
     // ---------- Input for Async. Branch prediction ----------
     input  [31:0] current_pc,
 
@@ -47,6 +47,9 @@ module BranchPredictor (
 
   // ---------- Sync. Branch Predictor state update ----------
   always @(posedge clk) begin
+    if (rst) begin
+    end
+
     assign update_pc_msb = branch_inst_address[31: `BHSR_WIDTH];
     assign update_pc_lsb = branch_inst_address[`BHSR_WIDTH - 1: 0];
     assign update_pht_index = updtae_pc_lsb ^ bhsr;
@@ -55,17 +58,25 @@ module BranchPredictor (
     if(predictor_wrong == 1'b0) begin   // Predictor Correct
       if(branch_inst_address + 4 == resolved_next_pc) begin // Pred: NT, Actual: NT
         pht[update_pht_index] = (pht[update_pht_index] == `STRONG_NOT_TAKEN ? `STRONG_NOT_TAKEN : pht[update_pht_index] - 1); // Decrease counter
+        btb_tag_tbl[update_pht_index] = update_pc_msb;
+        btb_target_tbl[update_pht_index] = resolved_next_pc;
       end
       else begin  // Pred: T, Actual: T
         pht[update_pht_index] = (pht[update_pht_index] == `STRONG_TAKEN ? `STRONG_TAKEN : pht[update_pht_index] + 1); // Increase Counter
+        btb_tag_tbl[update_pht_index] = update_pc_msb;
+        btb_target_tbl[update_pht_index] = resolved_next_pc;
       end
     end
     else begin  // Predictor Wrong
       if(branch_inst_address + 4 == resolved_next_pc) begin // Predict: NT, Actual: T
         pht[update_pht_index] = (pht[update_pht_index] == `STRONG_TAKEN ? `STRONG_TAKEN : pht[update_pht_index] + 1); // Increase Counter
+        btb_tag_tbl[update_pht_index] = update_pc_msb;
+        btb_target_tbl[update_pht_index] = resolved_next_pc;
       end
       else begin  // Pred: T, Actual: NT
         pht[update_pht_index] = (pht[update_pht_index] == `STRONG_NOT_TAKEN ? `STRONG_NOT_TAKEN : pht[update_pht_index] - 1); // Decrease counter
+        btb_tag_tbl[update_pht_index] = update_pc_msb;
+        btb_target_tbl[update_pht_index] = resolved_next_pc;
       end
 
     assign predicted_pc = 32'h00000000; // NOT returning predicted PC
