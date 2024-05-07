@@ -1,4 +1,4 @@
-`define BHSR_WIDTH 10
+`define BHSR_WIDTH 5
 `define BHSR_ENTRIES (1 << BHSR_WIDTH)
 
 `define STRONG_NOT_TAKEN 2'b00
