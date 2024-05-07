@@ -42,6 +42,7 @@ module cpu (
 
   // Update IF/ID pipeline registers here
   wire IF_ID_reg_write_enable;
+  wire IF_ID_reg_valid;
   wire [31:0] IF_ID_reg_inst_out;
   wire [31:0] IF_ID_reg_pc;
   IFIDRegister if_id_reg (
@@ -53,6 +54,7 @@ module cpu (
       .inst_in(imem_dout),
       .pc_in  (pc_current_pc),
 
+      .valid(IF_ID_reg_valid),
       .inst_out(IF_ID_reg_inst_out),
       .pc(IF_ID_reg_pc)
   );
@@ -157,7 +159,7 @@ module cpu (
 
   wire is_hazardous;
   assign is_hazardous = rs1_hdu_is_hazardous || rs2_hdu_is_hazardous || ecall_hdu_is_hazardous;
-  assign pc_write_enable = ~is_hazardous;
+  assign pc_write_enable = ~is_hazardous & IF_ID_reg_valid;
   assign IF_ID_reg_write_enable = ~is_hazardous;
 
   // Update ID/EX pipeline registers here
@@ -190,7 +192,7 @@ module cpu (
       .op2_imm_in(ctrl_unit_op2_imm),
       .is_halted_in(ecall_unit_is_halted & ~is_hazardous),
       .ex_forwardable_in(ctrl_unit_ex_forwardable & ~is_hazardous),
-      .valid_in(~ctrl_hdu_is_hazardous),
+      .valid_in(~ctrl_hdu_is_hazardous & IF_ID_reg_valid),
       .is_branch_in(ctrl_unit_is_branch),
       .is_rd_to_pc_in(ctrl_unit_is_rd_to_pc),
 
@@ -317,7 +319,8 @@ module cpu (
 
   wire ctrl_hdu_is_hazardous;
   ControlHazardDetectionUnit ctrl_hdu (
-      .resolved_pc (pc_gen_next_pc),
+      .enable(ID_EX_reg_valid),
+      .resolved_pc(pc_gen_next_pc),
       .predicted_pc(IF_ID_reg_pc),
 
       .is_hazardous(ctrl_hdu_is_hazardous)
