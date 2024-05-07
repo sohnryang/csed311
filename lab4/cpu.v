@@ -352,7 +352,7 @@ module cpu (
 
       .wb_enable_in(ID_EX_reg_wb_enable & ID_EX_reg_valid),
       .mem_enable_in(ID_EX_reg_mem_enable & ID_EX_reg_valid),
-      .mem_write_in(ID_EX_reg_mem_write),
+      .mem_write_in(ID_EX_reg_mem_write & ID_EX_reg_valid),
       .is_halted_in(ID_EX_reg_is_halted & ID_EX_reg_valid),
       .ex_forwardable_in(ID_EX_reg_ex_forwardable & ID_EX_reg_valid),
 
