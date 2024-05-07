@@ -43,6 +43,7 @@ module cpu (
   // Update IF/ID pipeline registers here
   wire IF_ID_reg_write_enable;
   wire IF_ID_reg_valid;
+  wire IF_ID_reg_bubble;
   wire [31:0] IF_ID_reg_inst_out;
   wire [31:0] IF_ID_reg_pc;
   IFIDRegister if_id_reg (
@@ -50,11 +51,14 @@ module cpu (
       .reset(reset),
 
       .write_enable(IF_ID_reg_write_enable),
+      .bubble_in(ctrl_hdu_is_hazardous),
 
       .inst_in(imem_dout),
       .pc_in  (pc_current_pc),
 
-      .valid(IF_ID_reg_valid),
+      .valid (IF_ID_reg_valid),
+      .bubble(IF_ID_reg_bubble),
+
       .inst_out(IF_ID_reg_inst_out),
       .pc(IF_ID_reg_pc)
   );
@@ -185,14 +189,14 @@ module cpu (
       .clk  (clk),
       .reset(reset),
 
-      .wb_enable_in(ctrl_unit_wb_enable & ~is_hazardous),
+      .wb_enable_in(ctrl_unit_wb_enable & ~is_hazardous & ~IF_ID_reg_bubble),
       .mem_enable_in(ctrl_unit_mem_enable),
-      .mem_write_in(ctrl_unit_mem_write & ~is_hazardous),
+      .mem_write_in(ctrl_unit_mem_write & ~is_hazardous & ~IF_ID_reg_bubble),
       .op1_pc_in(ctrl_unit_op1_pc),
       .op2_imm_in(ctrl_unit_op2_imm),
-      .is_halted_in(ecall_unit_is_halted & ~is_hazardous),
-      .ex_forwardable_in(ctrl_unit_ex_forwardable & ~is_hazardous),
-      .valid_in(~ctrl_hdu_is_hazardous & IF_ID_reg_valid),
+      .is_halted_in(ecall_unit_is_halted & ~is_hazardous & ~IF_ID_reg_bubble),
+      .ex_forwardable_in(ctrl_unit_ex_forwardable & ~is_hazardous & ~IF_ID_reg_bubble),
+      .valid_in(~ctrl_hdu_is_hazardous & IF_ID_reg_valid & ~IF_ID_reg_bubble),
       .is_branch_in(ctrl_unit_is_branch),
       .is_rd_to_pc_in(ctrl_unit_is_rd_to_pc),
 
