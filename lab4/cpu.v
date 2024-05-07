@@ -42,7 +42,7 @@ module cpu (
 
   // Update IF/ID pipeline registers here
   wire IF_ID_reg_write_enable;
-  wire IF_ID_reg_invalid;
+  wire IF_ID_reg_valid;
   wire [31:0] IF_ID_reg_inst_out;
   wire [31:0] IF_ID_reg_pc;
   IFIDRegister if_id_reg (
@@ -50,12 +50,12 @@ module cpu (
       .reset(reset),
 
       .write_enable(IF_ID_reg_write_enable),
-      .invalid_in  (ctrl_hdu_is_hazardous),
+      .valid_in(ctrl_hdu_is_hazardous),
 
       .inst_in(imem_dout),
       .pc_in  (pc_current_pc),
 
-      .invalid(IF_ID_reg_invalid),
+      .valid(IF_ID_reg_valid),
 
       .inst_out(IF_ID_reg_inst_out),
       .pc(IF_ID_reg_pc)
@@ -172,7 +172,7 @@ module cpu (
   wire ID_EX_reg_op2_imm;
   wire ID_EX_reg_is_halted;
   wire ID_EX_reg_ex_forwardable;
-  wire ID_EX_reg_invalid;
+  wire ID_EX_reg_valid;
   wire ID_EX_reg_is_branch;
   wire ID_EX_reg_is_rd_to_pc;
   wire [31:0] ID_EX_reg_rs1;
@@ -194,7 +194,7 @@ module cpu (
       .op2_imm_in(ctrl_unit_op2_imm),
       .is_halted_in(ecall_unit_is_halted & ~is_hazardous),
       .ex_forwardable_in(ctrl_unit_ex_forwardable & ~is_hazardous),
-      .invalid_in(ctrl_hdu_is_hazardous | IF_ID_reg_invalid),
+      .valid_in(ctrl_hdu_is_hazardous | IF_ID_reg_valid),
       .is_branch_in(ctrl_unit_is_branch),
       .is_rd_to_pc_in(ctrl_unit_is_rd_to_pc),
 
@@ -214,7 +214,7 @@ module cpu (
       .op2_imm(ID_EX_reg_op2_imm),
       .is_halted(ID_EX_reg_is_halted),
       .ex_forwardable(ID_EX_reg_ex_forwardable),
-      .invalid(ID_EX_reg_invalid),
+      .valid(ID_EX_reg_valid),
       .is_branch(ID_EX_reg_is_branch),
       .is_rd_to_pc(ID_EX_reg_is_rd_to_pc),
 
@@ -347,11 +347,11 @@ module cpu (
       .clk  (clk),
       .reset(reset),
 
-      .wb_enable_in(ID_EX_reg_wb_enable & ~ID_EX_reg_invalid),
-      .mem_enable_in(ID_EX_reg_mem_enable & ~ID_EX_reg_invalid),
+      .wb_enable_in(ID_EX_reg_wb_enable & ID_EX_reg_valid),
+      .mem_enable_in(ID_EX_reg_mem_enable & ID_EX_reg_valid),
       .mem_write_in(ID_EX_reg_mem_write),
-      .is_halted_in(ID_EX_reg_is_halted & ~ID_EX_reg_invalid),
-      .ex_forwardable_in(ID_EX_reg_ex_forwardable & ~ID_EX_reg_invalid),
+      .is_halted_in(ID_EX_reg_is_halted & ID_EX_reg_valid),
+      .ex_forwardable_in(ID_EX_reg_ex_forwardable & ID_EX_reg_valid),
 
       .alu_output_in(alu_alu_result),
       .rs2_in(rs2_fwd_mux_mux_out),

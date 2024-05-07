@@ -9,7 +9,7 @@ module IDEXRegister (
     input op2_imm_in,
     input is_halted_in,
     input ex_forwardable_in,
-    input invalid_in,
+    input valid_in,
     input is_branch_in,
     input is_rd_to_pc_in,
 
@@ -29,7 +29,7 @@ module IDEXRegister (
     output reg op2_imm,
     output reg is_halted,
     output reg ex_forwardable,
-    output reg invalid,
+    output reg valid,
     output reg is_branch,
     output reg is_rd_to_pc,
 
@@ -51,7 +51,7 @@ module IDEXRegister (
       op2_imm <= 0;
       is_halted <= 0;
       ex_forwardable <= 0;
-      invalid <= 0;
+      valid <= 0;
       is_branch <= 0;
       is_rd_to_pc <= 0;
 
@@ -71,7 +71,7 @@ module IDEXRegister (
       op2_imm <= op2_imm_in;
       is_halted <= is_halted_in;
       ex_forwardable <= ex_forwardable_in;
-      invalid <= invalid_in;
+      valid <= valid_in;
       is_branch <= is_branch_in;
       is_rd_to_pc <= is_rd_to_pc_in;
 
