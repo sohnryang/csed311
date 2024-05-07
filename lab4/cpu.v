@@ -159,7 +159,7 @@ module cpu (
 
   wire is_hazardous;
   assign is_hazardous = rs1_hdu_is_hazardous || rs2_hdu_is_hazardous || ecall_hdu_is_hazardous;
-  assign pc_write_enable = ~is_hazardous & IF_ID_reg_valid;
+  assign pc_write_enable = ~is_hazardous;
   assign IF_ID_reg_write_enable = ~is_hazardous;
 
   // Update ID/EX pipeline registers here
