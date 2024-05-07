@@ -42,7 +42,6 @@ module cpu (
 
   // Update IF/ID pipeline registers here
   wire IF_ID_reg_write_enable;
-  wire IF_ID_reg_valid;
   wire [31:0] IF_ID_reg_inst_out;
   wire [31:0] IF_ID_reg_pc;
   IFIDRegister if_id_reg (
@@ -50,12 +49,9 @@ module cpu (
       .reset(reset),
 
       .write_enable(IF_ID_reg_write_enable),
-      .valid_in(ctrl_hdu_is_hazardous),
 
       .inst_in(imem_dout),
       .pc_in  (pc_current_pc),
-
-      .valid(IF_ID_reg_valid),
 
       .inst_out(IF_ID_reg_inst_out),
       .pc(IF_ID_reg_pc)
@@ -194,7 +190,7 @@ module cpu (
       .op2_imm_in(ctrl_unit_op2_imm),
       .is_halted_in(ecall_unit_is_halted & ~is_hazardous),
       .ex_forwardable_in(ctrl_unit_ex_forwardable & ~is_hazardous),
-      .valid_in(ctrl_hdu_is_hazardous | IF_ID_reg_valid),
+      .valid_in(~ctrl_hdu_is_hazardous),
       .is_branch_in(ctrl_unit_is_branch),
       .is_rd_to_pc_in(ctrl_unit_is_rd_to_pc),
 
