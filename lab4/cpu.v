@@ -28,9 +28,6 @@ module cpu (
       .current_pc(pc_current_pc)  // output
   );
 
-  wire [31:0] branch_predictor_predicted_pc;
-  assign branch_predictor_predicted_pc = pc_current_pc + 4;
-
   // ---------- Instruction Memory ----------
   wire [31:0] imem_dout;
   InstMemory imem (
@@ -338,6 +335,18 @@ module cpu (
       .mux_in_1(pc_gen_next_pc),
       .sel(ctrl_hdu_is_hazardous),
       .mux_out(pc_next_pc)
+  );
+
+  wire [31:0] branch_predictor_predicted_pc;
+  BranchPredictor branch_predictor (
+      .clk(clk),
+      .rst(reset),
+      .current_pc(pc_current_pc),
+      .update_pred(ID_EX_reg_valid),
+      .branch_inst_address(ID_EX_reg_pc),
+      .resolved_next_pc(pc_next_pc),
+      .predictor_wrong(ctrl_hdu_is_hazardous),
+      .predicted_pc(branch_predictor_predicted_pc)
   );
 
   // Update EX/MEM pipeline registers here
