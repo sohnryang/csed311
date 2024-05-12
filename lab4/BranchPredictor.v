@@ -40,10 +40,8 @@ module BranchPredictor (
 
   always @(*) begin
     if ((pht[pht_index] >= `WEAK_TAKEN) && (btb_tag_tbl[pc_lsb] == pc_msb)) begin // Tag matches, Likely to take branch
-      $display("Predict  T to %x -> %x (%x), because PHT[%x] = %x with HISTORY[%b] and TAG MATCH [%x = %x]", current_pc, btb_target_tbl[pc_lsb], pc_lsb, pht_index, pht[pht_index], bhsr, btb_tag_tbl[pc_lsb], pc_msb);
       assign predicted_pc = btb_target_tbl[pc_lsb];
     end else begin
-      $display("Predict NT to %x -> %x (%x), because PHT[%x] = %x with HISTORY[%b] and TAG MATCH [%x = %x]", current_pc, current_pc + 4, pc_lsb, pht_index, pht[pht_index], bhsr, btb_tag_tbl[pc_lsb], pc_msb);
       assign predicted_pc = current_pc + 4;
     end
   end
@@ -74,13 +72,11 @@ module BranchPredictor (
           btb_tag_tbl[update_pc_lsb] <= update_pc_msb;
           btb_target_tbl[update_pc_lsb] <= resolved_next_pc;
           bhsr <= (bhsr << 1 | `BHSR_WIDTH'b0);
-          $display("(%x -> %x) P NT == R NT, PHT[%x] = %x with HISTORY = [%b] and TARGET[%x] = %x",predicted_pc, resolved_next_pc, update_pht_index, pht[update_pht_index], bhsr, update_pc_lsb, btb_target_tbl[update_pc_lsb]);
         end else begin  // Pred: T, Actual: T
           pht[update_pht_index] <= (pht[update_pht_index] == `STRONG_TAKEN ? `STRONG_TAKEN : pht[update_pht_index] + 1); // Increase Counter
           btb_tag_tbl[update_pc_lsb] <= update_pc_msb;
           btb_target_tbl[update_pc_lsb] <= resolved_next_pc;
           bhsr <= (bhsr << 1 | `BHSR_WIDTH'b1);
-          $display("(%x -> %x) P  T == R  T, PHT[%x] = %x with HISTORY = [%b] and TARGET[%x] = %x",predicted_pc, resolved_next_pc, update_pht_index, pht[update_pht_index], bhsr, update_pc_lsb, btb_target_tbl[update_pc_lsb]);
         end
       end else begin  // Predictor Wrong
         if (predicted_pc + 4 == resolved_next_pc) begin  // Predict: NT, Actual: T
@@ -88,13 +84,11 @@ module BranchPredictor (
           btb_tag_tbl[update_pc_lsb] <= update_pc_msb;
           btb_target_tbl[update_pc_lsb] <= resolved_next_pc;
           bhsr <= (bhsr << 1 | `BHSR_WIDTH'b1);
-          $display("(%x -> %x) P NT != R  T, PHT[%x] = %x with HISTORY = [%b] and TARGET[%x] = %x",predicted_pc, resolved_next_pc, update_pht_index, pht[update_pht_index], bhsr, update_pc_lsb, btb_target_tbl[update_pc_lsb]);
         end else begin  // Pred: T, Actual: NT
           pht[update_pht_index] <= (pht[update_pht_index] == `STRONG_NOT_TAKEN ? `STRONG_NOT_TAKEN : pht[update_pht_index] - 1); // Decrease counter
           btb_tag_tbl[update_pc_lsb] <= update_pc_msb;
           btb_target_tbl[update_pc_lsb] <= resolved_next_pc;
           bhsr <= (bhsr << 1 | `BHSR_WIDTH'b0);
-          $display("(%x -> %x) P  T != R NT, PHT[%x] = %x with HISTORY = [%b] and TARGET[%x] = %x",predicted_pc, resolved_next_pc, update_pht_index, pht[update_pht_index], bhsr, update_pc_lsb, btb_target_tbl[update_pc_lsb]);
         end
       end
     end
