@@ -44,6 +44,9 @@ module BranchPredictor (
     end else begin
       assign predicted_pc = current_pc + 4;
     end
+    update_pc_msb = branch_inst_address[31:`BHSR_WIDTH];
+    update_pc_lsb = branch_inst_address[`BHSR_WIDTH-1:0];
+    update_pht_index = update_pc_lsb ^ bhsr;
   end
 
 
@@ -62,11 +65,6 @@ module BranchPredictor (
     end
 
     if (update_pred && predictor_wrong) begin
-      update_pc_msb <= branch_inst_address[31:`BHSR_WIDTH];
-      update_pc_lsb <= branch_inst_address[`BHSR_WIDTH-1:0];
-      update_pht_index <= update_pc_lsb ^ bhsr;
-
-
       /* Updating 2-bit saturatrion counter FSM state */
       if (predictor_wrong == 1'b1) begin  // Predictor Correct
         if (predicted_pc + 4 == resolved_next_pc) begin  // Pred: NT, Actual: NT
