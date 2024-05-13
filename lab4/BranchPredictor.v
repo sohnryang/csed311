@@ -53,9 +53,11 @@ module BranchPredictor (
     if (rst) begin
       bhsr <= `BHSR_WIDTH'b0;
       for (i = 0; i < `BHSR_ENTRIES; i = i + 1) begin
-        pht[i] <= 2'b00;
-        btb_tag_tbl[i] <= 0;
-        btb_target_tbl[i] <= 0;
+        /* verilator lint_off BLKSEQ */
+        pht[i] = 2'b00;
+        btb_tag_tbl[i] = 0;
+        btb_target_tbl[i] = 0;
+        /* verilator lint_on BLKSEQ */
       end
     end
 
