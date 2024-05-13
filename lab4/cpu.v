@@ -342,7 +342,7 @@ module cpu (
       .clk(clk),
       .rst(reset),
       .current_pc(pc_current_pc),
-      .update_pred(ID_EX_reg_valid),
+      .update_pred(ID_EX_reg_is_branch),
       .branch_inst_address(ID_EX_reg_pc),
       .resolved_next_pc(pc_next_pc),
       .predictor_wrong(ctrl_hdu_is_hazardous),
