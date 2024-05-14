@@ -43,7 +43,7 @@
   },
   Script=Hangul, Language=Korean
 ]
-\title{CSED311: Lab 4 (due Apr. 30)}
+\title{CSED311: Lab 4 (due May. 14)}
 \author{김태연(20220140), 손량(20220323)}
 \date{Last compiled on: \today, \currenttime}
 
@@ -53,36 +53,60 @@
 \maketitle
 
 \section{Introduction}
-RISC-V architecture를 바당으로 Control flow instructiond을 처리하지 않는 Pipelined CPU를 구현한다.
+RISC-V architecture를 바당으로 Control flow instruction을 처리하지 않는 Pipelined CPU의 구현에 Branch prediction을 덧붙여
+Control flow instruction을 처리할 수 있도록 설계한다.
 
 \section{Design}
 이번에 구현한 RISC-V Multicycle CPU는 다음과 같은 주요 기능을 가진 Submodule로 나누었으며, 생성된 값들을 선택하기 위해
 추가적으로 Multiplexer를 구현하여 사용했다. 기존 Single-cycle CPU에 추가적으로 Forwarding unit과 Forwarding path를
-설계하여 Pipelining을 지원하였다.
+설계하여 Pipelining을 지원하여 Data hazard를 피했으며, GShare branch predictor를 디자인하여 Control hazard를 피했다.
 
 \subsection{Program Counter}
+Program counter는 CPU clock에 synchronous하게 현재 program counter를 출력하고, 들어오는 32-bit 입력으로 현재 program counter를 갱신한다.
+해당 모듈 내부에는 branch prediction 기능을 가지고 있지 않다.
 
 \subsection{Instruction Memory and Data Memory}
+구현한 CPU는 instruction memory 영역과 data memory 영역을 분리하여 가지고 있으며, 각 memory의 특징은 다음과 같다.
+
+\begin{itemize}
+  \item Instruction Memory
+  \begin{itemize}
+    \item Size -- 1024 Words = 4KiB를 가지고 있다.
+    \item Propagation -- \texttt{imem\_dout}을 통해 출력된 instruction은 IF/ID interstage register으로 입력되어 CPU clock에 synchronous하게 전달된다.
+  \end{itemize}
+  \item Data Memory
+  \begin{itemize}
+    \item Size -- 16384 Words = 64KiB를 가지고 있다.
+    \item Input -- Forwarding이 완료된 EX/MEM interstage의 \texttt{rs2}를 입력으로 받는다.
+    \item Output -- \texttt{dmem\_dout}와 ALU의 출력 중 multiplexer를 통해 선택되어 MEM/WB interstage register으로 전달된다.
+  \end{itemize}
+\end{itemize}
 
 \subsection{Register File}
-
 \subsection{ALU}
-
 기존의 Single cycle CPU와 동일한 모듈 배치를 이루고 있으며, 각 모듈의 Asynchronous 혹은 Synchronous한 Clock signal
-또한 Single-cycle CPU와 동일한 구조를 가지고 있다. 다만, 현재 구현하고자 하는 CPU는 Control flow instruction이 없기 떄문에
-해당하는 Branch Instruction 등을 지원하지 않도록 설계되었다. \texttt{opcodes.v}에서 자세히 확인할 수 있다.
+또한 Single-cycle CPU와 동일한 구조를 가지고 있다. \texttt{opcodes.v}에서 자세히 확인할 수 있다.
 
 \subsection{Inter-Stage Registers}
 Pipelined CPU가 일반적인 CPU와 가장 큰 다른 점은 CPU의 각 부분 별로 다른 Instruction을 동시에 처리할 수 있다는 점이다.
 따라서, Instruction Fetch에서 Write Back에 이르는 구간 사이에 값을 전달하기 위해 Register를 두어야 한다.
 편의상, 본 보고서에서는 이를 Interstage Register이라 부를 예정이며, 각 구간 별로 다음과 같은 Register가 존재한다.
+이 중 Control flow instruction을 처리하면서 새롭게 도입하거나 수정된 Interstate register들은 \textbf{굵은} 글씨와 + 기호를 사용해 명시하였다.
+Control Hazard는 EX stage에서 모두 Resolve되기 때문에, control hazard와 관련하여 추가로 설치한 interstage register은 모두 IF/ID 혹은 ID/EX stage에 새로 추가된 것을 확인할 수 있다.
 
 \subsubsection{IF--ID}
 Instruction Fetch --Instruction Decode 사이에서 저장되는 신호는 다음과 같다.
 \begin{itemize}
   \item \texttt{IF\_ID\_reg\_write\_enable} -- 현재 CPU의 상황이 Hazard가 없을 경우에 해당 신호가 켜진다.
+  \item \textbf{\texttt{IF\_ID\_reg\_valid} +} -- 현재 Instruction의 validness를 전달하기 위해 사용되는 값이다. IF/ID stage에서는 항상 1(Valid)를 전달한다.
+  \item \textbf{\texttt{IF\_ID\_reg\_bubble} +} -- IF/ID stage에서 instruction fetch를 중단해야 하는 경우 활성화되는 신호이다. 해당 값은 \texttt{ctrl\_hdu\_is\_hazardous}로부터 전달되어, control hazard가 발생하는 경우 신호가 활성화된다.
   \item \texttt{IF\_ID\_reg\_inst\_out} -- Instruction Fetch Stage로부터 instruction을 전달받는다.
+  \item \textbf{\texttt{IF\_ID\_reg\_pc} +} -- IF/ID stage를 지나고 있는 instruction의 program counter 값을 전달한다.
 \end{itemize}
+
+ID (Instruction Decode) stage에서 \texttt{IF\_ID\_reg\_bubble} 신호가 활성화되어 전달된 경우, ID/EX interstage register의 입력으로 전달되는
+memory 접근(read/write) 및 instruction validness에 대한 모든 control input을 비활성화한다. (\texttt{wb\_enable}, \texttt{mem\_write\_in}, \texttt{is\_halted\_in}, \texttt{valid\_in})
+이로써 더 이상 해당 invalid instruction이 pipeline 내에서 전파되는 것을 방지할 수 있다.
 
 \subsubsection{ID--EX}
 Instruction Decode -- Execute 사이에서 저장되는 신호는 다음과 같다.
@@ -92,14 +116,19 @@ Instruction Decode 단계에서 Control unit을 통해 다양한 Control signal�
   \item \texttt{ID\_EX\_reg\_wb\_enable} -- ID/EX Stage에 있는 Instruction이 추후 Write Back Stage에서 Register file으로 Write back이 이루어지는지를 나타낸다.
   \item \texttt{ID\_EX\_reg\_mem\_enable} -- ID/EX Stage에 있는 Instruction이 추후 Memory Stage에서 Data Memory에 접근하는지 나타낸다.
   \item \texttt{ID\_EX\_reg\_mem\_write} -- ID/EX Stage에 있는 Instruction이 추후 Memory Stage에서 Data Memory에 값을 작성하는지 나타낸다.
-  \item \texttt{ID\_EX\_reg\_op2\_imm} -- ID/EX Stage에 있는 Instruction이 현재 Execute Stage에서 ALU에 사용할 입력이 Register file의 값인지, Immediate generator의 값인지 나타낸다.
+  \item \textbf{\texttt{ID\_EX\_reg\_op1\_pc} +} -- ID/EX Stage에서 EX stage의 ALU의 입력으로 Regsiter file의 값을 사용할 지, Program counter의 값을 사용할 지 선택하는 신호이다.
+  \item \textbf{\texttt{ID\_EX\_reg\_op2\_sel} +} -- ID/EX Stage에서 EX stage의 ALU의 입력으로 Register file의 값, Immediate generator, +4 중 어떤 값을 사용할 지 선택하는 신호이다.
   \item \texttt{ID\_EX\_reg\_is\_halted} -- ID/EX Stage에 있는 Instruction이 추후 halt를 호출하는지 나타낸다.
   \item \texttt{ID\_EX\_reg\_ex\_forwardable} -- ID/EX Stage에 있는 Instruction이 Forward될 수 있는지를 전달한다. 이 값은 Control Unit과 Hazard Detection Unit으로부터 결정된다.
+  \item \textbf{\texttt{ID\_EX\_reg\_valid} +} -- 현재 ID/EX Stage를 지나고 있는 Instruction이 valid한지 나타내기 위한 입력이다. 이전 Stage로부터 전달된 Validness와 Bubble의 여부, Data 및 Control Hazard 여부를 모두 고려했을 때 문제가 없는 경우 해당 신호를 활성화한다.
+  \item \textbf{\texttt{ID\_EX\_reg\_is\_branch} +} -- Instruction decode 결과 현재 Instruction이 Branch type인지 다음 Stage로 전달한다.
+  \item \textbf{\texttt{ID\_EX\_reg\_is\_jalr} +} -- Instruction decode 결과 현재 Instruction이 \texttt{JALR}인지 다음 Stage로 전달한다.
   \item \texttt{ID\_EX\_reg\_rs1} -- ID/EX Stage에 있는 Instruction에서 사용될 \texttt{rs1} register value이다.
   \item \texttt{ID\_EX\_reg\_rs2} -- ID/EX Stage에 있는 Instruction에서 사용될 \texttt{rs2} register value이다.
   \item \texttt{ID\_EX\_reg\_rd\_id} -- ID/EX Stage에 있는 Instruction이 추후 Write Back Stage에서 작성할 register의 index이다.
   \item \texttt{ID\_EX\_reg\_inst} -- ID/EX Stage에 있는 Instruction으로부터 ALU Control Unit에 전달될 신호이다.
   \item \texttt{ID\_EX\_reg\_imm} -- ID/EX Stage에 있는 Instruction이 Immediate generator로부터 얻은 값을 전닳한다.
+  \item \textbf{\texttt{ID\_EX\_reg\_pc} +} -- 현재 ID/EX Stage를 지나는 Instruction이 놓이던 Instruction address를 저장하고 있다.
 \end{itemize}
 
 \subsubsection{EX--MEM}
@@ -129,28 +158,26 @@ Halt instruction 또한 다른 instruction처럼 CPU의 모든 pipeline을 통�
 \subsection{Control Unit}
 Instruction Fetch 과정을 거친 이후 Control Unit으로 \texttt{IF\_ID\_reg\_inst\_out} Interstage register의 값이 입력되며, 해당 instruction의 type으로부터
 다음과 같은 종류의 Control signal을 만들어낼 수 있다. Signal이 생성되어 필요한 Pipelining stage까지 Interstage register를 통해 Clock Synchronous하게 전달된다.
+이 중 Control flow instruction을 처리하면서 새롭게 도입하거나 수정된 Control unit Signal들은 \textbf{굵은} 글씨와 + 기호를 사용해 명시하였다.
 
 \begin{itemize}
   \item \texttt{opcode} -- ALU로 전달될 Opcode이다.
   \item \texttt{wb\_enable} -- 해당 Instruction이 Write Back stage에서 Register file에 값을 쓰는 경우 활성화된다.
   \item \texttt{mem\_enable} -- 해당 Instruction이 Memory stage에서 Memory에 접근하는 (Read / Write) 경우 활성화된다.
   \item \texttt{mem\_write} -- 해당 Instruction이 Memory stage에서 Memory에 값을 쓰는 경우 활성화된다.
-  \item \texttt{op2\_imm} -- ALU의 \texttt{in\_2} 입력으로 Register file / Immediate generator의 출력 중 선택한다.
+  \item \textbf{\texttt{op1\_pc} +} -- ALU의 \texttt{in\_1} 입력으로 현재 Pipeline 단계를 진행 중인 program counter의 값 / Register file의 값 중 선택한다.
+  \item \textbf{\texttt{op2\_sel} +} -- ALU의 \texttt{in\_2} 입력으로 Register file / Immediate generator의 출력 / +4 중 선택한다.
   \item \texttt{is\_ecall} -- 프로그램을 Halt하기 위한 \texttt{ecall}인 경우 활성화되며, 다른 Instruction과 마찬가지로 Pipeline을 통해 전달된다.
   \item \texttt{rs2\_used} -- 해당 Instruction에서 실제로 \texttt{rs2}가 두 번째 Register로써 사용되었는지 출력한다. \texttt{rs2}의 Forwarding을 위해 필요하게 되었다.
   \item \texttt{ex\_forwardable} -- 해당 Instruction에서 Execute stage의 ALU input으로 값을 전달할 수 있는지 확인한다. 해당 Signal은 ID/EX stage 및 EX/MEM stage에 전달되고, EX stage와 MEM stage의 마지막 단계에서 EX stage의 처음으로 값을 전달하여 ALU의 입력을 제공하고 있다.
+  \item \textbf{\texttt{is\_branch} +} -- 해당 Instruction이 Branch type인지 여부를 전달한다.
+  \item \textbf{\texttt{is\_jalr} +} -- 해당 Instruction이 \texttt{JALR} type인지 여부를 전달한다.
 \end{itemize}
 
 \subsection{Hazard Detection Unit}
-\subsection{Forwarding Unit}
-본 Pipelined CPU의 구현에서는 Hazard를 detect하는 부분과 Data를 Forwarding하는 부분을 분리하여 구현하였다.
-Hazard Detection Unit에서는 Load instruction이 Execute Stage에 배치되면서 발생하는 Stall을 관리하고, Forwarding Unit에서는 필요한 경우 가능한 Forwarding 조합으로부터 ALU input multiplexer에 값을 전달한다.
-자세한 내용은 \ref{hzdfwd} \textsf{\textbf{Hazard Detection and Data Forwarding}} Section 에서 다루었다.
-
-\section{Hazard Detection and Data Forwarding} \label{hzdfwd}
 
 \subsection{Hazard Detection}
-Hazard Detection Unit은 EX stage에 Load instruction이 배치됨으로써 발생하는 불가피한 "Stall" 을 처리하도록 설계하였다.
+Hazard Detection을 구현하기 위해 \texttt{HazardDetectionUnit} 모듈을 구현하였다. Hazard Detection Unit은 EX stage에 Load instruction이 배치됨으로써 발생하는 불가피한 "Stall" 을 처리하도록 설계하였다.
 Hazard Detection Unit의 출력인 \texttt{is\_hazardous}는 각 \texttt{rs1}, \texttt{rs2} 별로 2개의 출력을 가진다.
 이 중 하나만이라도 Hazardous하게 판단이 된 경우 \texttt{pc\_write\_enable} 및 \texttt{IF\_ID\_reg\_write\_enable} 신호를 Disable시켜 하나의 Clock cycle을 강제로 소비하여 Hazard를 해결한다 (Bubbling).
 
@@ -170,7 +197,7 @@ Hazard Detection Unit의 출력인 \texttt{is\_hazardous}는 각 \texttt{rs1}, \
 결과적으로 PC update와 Instruction Fetch를 진행하지 못하고, 현재 진행중이던 EX, MEM, WB만 Pipeline에서 Stage를 진행하며 Stall을 구현하였다.
 
 \subsection{Data Forwarding}
-Forwarding Unit은 각 단계 사이의 Inter-stage register로부터 ALU에 Forward된 값을 전달하며, Muliplexer로 선택하기 위해 Forwarded 여부를 같이 출력한다.
+Data Forwarding을 구현하기 위해 \texttt{ForwardingUnit} 모듈을 두었다. Forwarding Unit은 각 단계 사이의 Inter-stage register로부터 ALU에 Forward된 값을 전달하며, multiplexer로 선택하기 위해 Forwarded 여부를 같이 출력한다.
 Forwarding에는 다음과 같은 가능한 조합이 있으며, 두 조합 모두 만족하는 경우 Pipeline에서 가장 최근에 갱신되는 값인 EX/MEM stage의 값을 전달해야 한다.
 \begin{itemize}
   \item \texttt{EX/MEM} stage -- \texttt{ex\_forwardable} 신호가 Pipeline을 통해 전달되고, 현재 ALU의 \texttt{rs} 와 Forward destination register가 (0이 아닌 상태로) 같은 경우 ALU output을 Forwarding한다. 이 경우 Hazard distance = 1이다.
@@ -191,6 +218,41 @@ Hazard distance가 3보다 큰 경우에는 필요로 하는 Register value가 �
 각각 \texttt{rs1} 및 \texttt{rs2}의 Forwarding을 관리하기 위해 Multiplexer를 추가하였으며, 이 \texttt{sel}으로 \texttt{is\_forward},
 \texttt{mux\_in\_1}으로 \texttt{forwarded\_value}가 전달되어 선택을 통해 필요한 값이 ALU에 입력되도록 구성했다.
 
+\section{Branch Prediction}
+해당 CPU의 Branch predictor으로 GShare branch predictor를 구현하였으며, 다음과 같은 구성 요소를 가지고 있다.
+\begin{itemize}
+  \item BTB -- 32 ($2^5$)개의 32-bit Branch target buffer entry가 존재한다.
+  \item Tag table -- 32개의 27 (32 - 5) bit entry가 존재하여 instruction address의 LSB 27bit를 저장한다. 각 entry는 BTB에 대응될 때 index에 따라 tag가 동일한지 확인한다.
+  \item Global BHSR -- 해당 BHSR은 LSB 5bit와 XOR하여 BTB index를 결정하게 된다. 따라서 5bit 크기의 Global branch history shift register을 가지게 된다.
+  \item PHT -- 32 ($2^5$)개의 2-bit saturation counter를 가지는 pattern history table이며, 각 entry는 BTB에 대응되어 counter의 상태에 따라 branch 여부를 결정하게 된다. 각 0(\texttt{STRONG\_NOT\_TAKEN}) 부터 3(\texttt{STRONG\_TAKEN})으로 갈 수록 branch prediction에 대한 확신이 증가하게 된다.
+\end{itemize}
+
+Branch predictor은 다음 Program counter를 예측하는 부분과, 실제 EX stage의 결과로부터 Branch predictor를 갱신하는 부분으로 나뉘어져 있다.
+다음 Program counter의 예측은 Combinational하게 생성되며, Branch predictor 내부 상태의 갱신은 Clock에 Synchronous하게 동작한다. 각각을 구현하기 위한 입/출력은 다음곽 같다.
+\begin{itemize}
+  \item Branch Prediction
+  \begin{itemize}
+    \item \texttt{current\_pc} -- 현재 Branch predictor를 거치는 instruction의 program counter가 입력된다.
+    \item \texttt{predicted\_pc} -- 현재 Branch predictor의 상태와 program counter로부터 예측한 다음 instruction의 address를 출력한다.
+  \end{itemize}
+  \item Branch Predictor Update
+  \begin{itemize}
+    \item \texttt{update\_pred} -- Branch predictor 내부 상태를 갱신하기 위해 필요한 활성화 Signal이다. \texttt{cpu.v}의 구현 상 \texttt{ID\_EX\_reg\_is\_branch}가 입력되어 Branch instruction일 때만 GShare branch predictor의 상태를 갱신할 수 있다.
+    \item \texttt{branch\_inst\_address} -- Branch predictor 갱신의 대상이 되는 branch instruction의 주소를 입력한다.
+    \item \texttt{resolved\_next\_pc} -- Adder를 거치고, EX stage를 통과하여 실제로 계산되고 선택된 다음 Instruction의 주소를 반환한다.
+    \item \texttt{predictor\_wrong} -- 해당 Branch instruction이 Hazard를 띌 수 있는지 여부가 주어지게 된다.
+  \end{itemize}
+\end{itemize} 
+
+\texttt{branch\_inst\_address}에 4를 더한 값이 \texttt{resolved\_next\_pc}와 같은지 비교를 통해 Branch taken / NOT taken 여부를 알아낼 수 있고.
+\texttt{predictor\_wrong} (예측 결과의 일치 여부) 입력으로부터 실제로 Branch predictor가 어떤 예측을 하였는지 알 수 있다. 총 4가지의 경우((Prediction taken / NOT taken) \times (Actual taken / NOT taken))의 조합이 가능하다.
+
+실제 Branch taken 여부에 따라 PHT가 갱신되고 BHSR이 업데이트된다.
+\begin{itemize}
+  \item Actual Taken -- PHT의 2-bit Counter를 증가시킬 수 있는 경우 증가시키고, BHSR shift 이후 1으로 LSB를 masking한다.
+  \item Actual NOT Taken -- PHT의 2-bit Counter를 감소시킬 수 있는 경우 감소시키고, BHSR shift 이후 0으로 LSB를 masking한다.
+\end{itemize}
+
 \section{Implementation}
 각 베릴로그 파일에 대한 세부 설명은 다음과 같다.
 
@@ -199,12 +261,13 @@ Hazard distance가 3보다 큰 경우에는 필요로 하는 Register value가 �
 
 \subsection{\texttt{cpu.v} -- 내부 Module을 연결하여 Pipelined CPU 구성}
 \texttt{cpu.v}는 다음과 같은 submodule을 연결하여 구성하였다.
+이 중 Control flow instruction을 처리하면서 새롭게 도입되거나 수정된 Module은 \textbf{굵은} 글씨와 + 기호를 사용해 명시하였다.
 \begin{itemize}
   \item \texttt{PC pc} -- Program Counter이다.
   \item \texttt{InstMemory imem} -- Instruction Memory이다.
   \item \texttt{IFIDRegister if\_id\_reg} -- Instruction Fetch stage에서 Instruction Decode stage로 넘어가는 Interstage register 전달 모듈이다.
   \item \texttt{ControlUnit ctrl\_unit} -- Control unit으로, ALU 및 각 Memory module, Hazard Detection, Forwarding 등에 사용되는 전반적인 Control signal을 instruction으로부터 생성한다.
-  \item \texttt{MUX2X1 rs1\_mux} -- \texttt{ecall}의 경우 고정적으로 \texttt{x17}을 \texttt{rs1}으로 넘겨주기 위한 Muliplexer이다.
+  \item \texttt{MUX2X1 rs1\_mux} -- \texttt{ecall}의 경우 고정적으로 \texttt{x17}을 \texttt{rs1}으로 넘겨주기 위한 multiplexer이다.
   \item \texttt{RegisterFile reg\_file} -- Register file이다.
   \item \texttt{EcallUnit ecall\_unit} -- \texttt{ecall}을 처리하기 위한 Unit으로, Pipeline을 모두 수행한 이후에 해당 모듈에 Signal이 전달되도록 설계되었다.
   \item \texttt{ImmediateGenerator imm\_gen} -- Immediate generator이다.
@@ -215,18 +278,34 @@ Hazard distance가 3보다 큰 경우에는 필요로 하는 Register value가 �
   \item \texttt{ALUControlUnit alu\_ctrl\_unit} -- ALU Control Unit으로, Single cycle CPU에서 Control flow instruction에 필요한 operation을 제외하고 구성되었다.
   \item \texttt{ForwardingUnit rs1\_fwd} -- EX/MEM stage와 MEM/WB stage의 \texttt{rs1} ID와 그 값, 현재 ALU에 들어간 \texttt{rs1} ID로부터 ALU에 Forwarding할 값과 Forward 여부를 결정한다.
   \item \texttt{MUX2X1 rs1\_fwd\_mux} -- ALU의 \texttt{rs1} 입력으로 Register file의 값과 \texttt{rs1\_fwd} Forwarding unit의 Forwarded value 중 필요한 값을 선택한다.
+  \item \textbf{\texttt{MUX2X1 op1\_mux} +} -- ALU의 \texttt{in1} 입력으로 현재 Program counter 및 Register file의 값 중 선택하는 multiplexer이다.
   \item \texttt{ForwardingUnit rs2\_fwd} -- EX/MEM stage와 MEM/WB stage의 \texttt{rs2} ID와 그 값, 현재 ALU에 들어간 \texttt{rs2} ID로부터 ALU에 Forwarding할 값과 Forward 여부를 결정한다.
   \item \texttt{MUX2X1 rs2\_fwd\_mux} -- ALU의 \texttt{rs2} 입력으로 Register file의 값과 \texttt{rs2\_fwd} Forwarding unit의 Forwarded value 중 필요한 값을 선택한다.
-  \item \texttt{MUX2X1 mux\_alu\_in\_2\_select} -- \texttt{rs2} 입력으로 \texttt{rs2\_fwd\_mux}를 통과한 최종적인 \texttt{rs2} 의 값과 Immediate generator로부터 생성된 값 중 필요한 값을 선택한다.
+  \item \textbf{\texttt{MUX2X1 mux\_alu\_in\_2\_select} +} -- ALU의 \texttt{in2} 입력으로 \texttt{rs2\_fwd\_mux}를 통과한 최종적인 \texttt{rs2} 의 값과 Immediate generator에서 생성된 값, +4 중 필요한 값을 선택한다.
   \item \texttt{ALU alu} -- ALU를 구현하였다.
+  \item \textbf{\texttt{PCGenerator pc\_gen} +} -- Execution stage를 거친 실제 연산 결과로부터 다음 instruction을 fetch해야하는 Program counter를 계산한다.
+  \item \textbf{\texttt{ControlHazardDetectionUnit ctrl\_hdu} +} -- 해당 Instruction이 Control Hazard를 가지고 있는지 판단한다.
+  \item \textbf{\texttt{MUX2X1 mux\_next\_pc} +} -- 다음 Program counter를 Branch predictor으로부터 갱신할 것인지, \texttt{pc\_gen}을 통해 계산된 Program counter으로 갱신할 것인지 결정하는 multiplexer이다.
+  \item \textbf{\texttt{BranchPredictor branch\_predictor} +} -- GShare Branch Predictor를 통해 다음 Instruction fetch가 일어날 Instruction address를 예측한다.
   \item \texttt{EXMEMRegister ex\_mem\_reg} -- Execution stage에서 Memory stage로 넘어가는 Interstage register 전달 모듈이다.
   \item \texttt{DataMemory dmem} -- Data memory이다.
   \item \texttt{MUX2X1 rd\_mux} -- Write back 될 value를 Register file의 출력 \texttt{rs2}와 Data Memory의 \texttt{dmem\_dout}으로부터 선택한다.
   \item \texttt{MEMWBregister mem\_wb\_reg} -- Memory stage에서 Write back stage로 넘어가는 Interstage register 전달 모듈이다.
 \end{itemize}
 
+\subsection{\texttt{PC.v} -- Program Counter}
+Clock에 Synchronous하게 현재 PC를 출력하고, 들어오는 32-bit 입력으로 현재 PC를 갱신하는 모듈이다.
+
+\subsection{\texttt{PCGenerator.v} -- 다음 PC 계산}
+Unconditional Jump (\texttt{JAL}, \texttt{JALR})의 경우 해당 Offset을 더하여 다음 PC를 출력한다.
+Branch의 경우 입력된 \texttt{imm}만큼을 더해 다음 PC를 출력하게 된다.
+그 이외의 경우는 다음 Instruction (PC + 4)를 출력한다.
+
 \subsection{\texttt{RegisterFile.v} -- Register File}
 \texttt{RegisterFile} 모듈의 입력 신호 중 \texttt{rd}와 \texttt{rd\_din}은 Write Back stage까지 Pipeline을 진행한 이후 입력되며, 이외의 입력은 Instruction Decode Stage에서 입력된다.
+
+\subsection{\texttt{ControlUnit.v} -- Control Unit}
+Single Cycle CPU의 기능에 더해, 다양한 Data hazard / Control Hazard를 Resolve하기 위한 Control signal output이 존재한다.
 
 \subsection{\texttt{InstMemory.v} -- Instruction Memory}
 \subsection{\texttt{DataMemory.v} -- Data Memory}
@@ -234,7 +313,8 @@ Pipelined CPU의 구현에서는 Instruction Memory와 Data Memory가 분리되�
 
 \subsection{\texttt{ALU.v} -- ALU}
 \subsection{\texttt{ALUControlUnit.v} -- ALU Control Unit}
-현재 구현의 정의에 따르면, ALU의 입력으로 Branch를 위한 Boolean operation이 주어지지 않았다. 따라서 Single Cycle CPU 구현에서 해당 부분을 제외하고 구성되었다.
+\subsection{\texttt{ImmediateGenerator.v} -- Immediate Generator}
+Single Cycle CPU의 구성과 동일한 ALU 설계와 ALU Opcode, Immediate generator의 형태를 가지고 있다.
 
 \subsection{\texttt{IFIDRegister.v} -- Intsruction Fetch stage / Instruction Decode stage 간 Interstage Register 전달}
 \subsection{\texttt{IDEXRegister.v} -- Instruction Decode stage  / Execution stage 간 Interstage Register 전달}
@@ -242,8 +322,15 @@ Pipelined CPU의 구현에서는 Instruction Memory와 Data Memory가 분리되�
 \subsection{\texttt{MEMWBregister.v} -- Memory Stage / Write back 간 Interstage Register 전달}
 각 Stage 간 전달되는 Interstage Register를 CPU clock에 Synchronous하게 다음 Stage로 전달해주는 Unit들이다.
 
-\subsection{\texttt{HazardDetectionUnit.v} -- Hazard Detection Unit}
-Hazard Detection Unit을 구현했다.
+\subsection{\texttt{BranchPredictor.v} -- GShare Branch Predictor}
+GShare branch predictor를 구현하였으며, 해당 모듈 내에서 Prediction 성공 여부로부터 Branch predictor 내부 구성 요소(BHSR, PHT, BTB 등)의 갱신이 Clock synchronous하게 이루어지며,
+다음 Program counter의 예측은 해당 모듈의 Combinational block에 구현하였다.
+
+\subsection{\texttt{HazardDetectionUnit.v} -- Data Hazard Detection Unit}
+Data Hazard Detection Unit을 구현했다.
+
+\subsection{\texttt{ControlHazardDetectionUnit.v} -- Control Hazard Detection Unit}
+Control Hazard Detection Unit을 구현했다.
 
 \subsection{\texttt{ForwardingUnit.v} -- Forwarding Unit}
 EX, MEM stage의 register ID, register value로부터 Forwarding을 감지하고, Forwarding을 진행한다.
@@ -253,95 +340,280 @@ EX, MEM stage의 register ID, register value로부터 Forwarding을 감지하고
 \texttt{ecall}을 구현하기 위한 모듈이며, 해당 모듈으로 들어오는 Signal은 모든 Stage를 지나서 전달된다. 이를 구현하기 위해 \texttt{cpu.v}의 Interstage register로 \texttt{is\_halted}를 두어 구현했다.
 또한, \texttt{halt}는 \texttt{x17} register에 값을 작성해서 이룰 수 있으며, 마찬가지로 Register의 Hazard가 발생할 수 있다. 특별히 Ecall만을 관리하기 위해 \texttt{EcallHazardDetectionUnit} 모듈을 만들어서 관리했다.
 
-\section{Discussion \and Conclusion}
-Single cycle CPU 구현에서 사용한 \texttt{non-controlflow\_mem.txt}를 사용하여 Benchmark를 실행했으며, 다음과 같은 결과를 얻었으며 모든 Testcase 및 Register가 맞는 것을 확인했다.
+\subsection{\texttt{Adder.v} -- Adder}
+\subsection{\texttt{MUX2X1.v} -- 2-to-1 Multiplexer}
+\subsection{\texttt{MUX4X1.v} -- 4-to-1 Multiplexer}
+Pipelined CPU의 구현에 필요한 Multiplexer 및 Adder를 개별의 모듈로 분리하였다.
+
+\section{Discussion}
+\subsection{Perfomance of GShare Branch Predictor}
+GShare branch predictor의 경우, BHSR을 통해 이전까지의 Branch 기록과 XOR을 통해 같은 Address에서 Branch를 수행하더라도, 결국 BTB Table의 index가 달라지게 된다.
+기존의 Branch history에 따라 Branch 여부를 좀 더 자세히 택할 수 있다는 점에서 일반적인 Global counter를 사용하는 Branch prediction보다 좋은 Branch prediction rate를 보이게 된다.
+
+\subsection{Comparing Policy}
+또한, 현재 Branch predictor의 사양을 다르게 해 보며 각각의 Testbench를 가동했을 때 최종 CPU Cycle은 다음과 같았다.
+다음과 같이 3개의 Branch predictor를 사용해 비교하였다.
+\begin{itemize}
+  \item \texttt{PC = 0} -- 다음 Program counter를 항항 0으로 설정하여 항상 Bubble을 일으키도록 설정하였다. (대조군)
+  \item Always NOT taken -- 항상 PC+4를 다음 PC로 prediction하도록 설정하였다.
+  \item GShare -- 이번 구현에서 우리가 사용한 Branch predictor이다.
+\end{itemize}
+
+\begin{center}
+  \begin{tabular}{| c | c | c | c |}
+    \hline
+    & \texttt{PC = 0} & Always NOT taken & GShare \\ \hline
+    \hline
+    \texttt{basic} & 86 & 36 & 36 \\ \hline
+    \texttt{non-controlflow} & 119 & 48 & 48 \\ \hline
+    \texttt{ifelse} & 104 & 44 & 44 \\ \hline
+    \texttt{loop} & 668 & 323 & 301 \\ \hline
+    \texttt{recursive} & 2690 & 1209 & 1109 \\ \hline
+  \end{tabular}
+\end{center}
+
+
+Always NOT Taken의 경우와 GShare branch predictor를 비교해 보았을 때 복잡한 Testbench에서 다음과 같은 성능 향상을 확인할 수 있었다.
+\begin{itemize}
+  \item \texttt{loop} -- 22 Cycle 감소 (107.3\% Faster)
+  \item \texttt{recursive} -- 100 Cycle 감소 (109.0\% Faster)
+\end{itemize}
+
+\subsection{Comparing Cache Size}
+현재 Branch Predictor의 구현은 32 ($2^5$)개의 Entry를 가진 PHT와 BTB를 통해 구현되었다. 해당 Entry의 수를 바꿔 보면서 얼마나 효율적인지 실험해 보고자 했다.
+\texttt{BHSR\_WIDTH}를 달리하면서 Testbench \texttt{recursive}를 수행하였을 때 실험 결과는 다음과 같다.
+
+\begin{center}
+  \begin{tabular}{| c | c |}
+    \hline
+    \texttt{BHSR\_WIDTH} & \texttt{recursive} \\ \hline
+    \hline
+    2 & 1195 \\ \hline
+    3 & 1156 \\ \hline
+    4 & 1140 \\ \hline
+    5 & 1109 \\ \hline
+    6 & 1061 \\ \hline
+    7 & 1063 \\ \hline
+    8 & 1065 \\ \hline
+    9 & 1070 \\ \hline
+    10 & 1067 \\ \hline
+    20 & 1078 \\ \hline
+  \end{tabular}
+\end{center}
+
+최적의 BTB 및 PHT 크기는 \texttt{BHSR\_WIDTH}가 6일 때, 해당 Cache들의 크기가 $2^6$ = 64가 되어 이때 최적의 크기를 가지게 된다.
+이보다 더 작은 경우, Branch prediction에 유효하게 쓰일 정보가 BTB에 들어가 있음에도 이를 invalidate하고 새로운 정보로 덮을 수 있으며, BHSR의 크기가 작기 때문에 충분히 다양한 index의 BTB entry로 분산시키지 못하였을 것으로 추측할 수 있다.
+반면 이보다 더 큰 경우, BHSR에 의해 과도하게 PHT 상에 Branching 정보가 분포되어 실제로 같은 Address와 같은 Branch 여부를 지녔음에도 BHSR으로 인해 다른 BTB entry에 대응될 수 있을 것이다. 
+
+\section{Conclusion}
+\texttt{basic\_mem.txt}를 사용하여 Benchmark를 실행했을 때, 다음과 같은 결과를 얻었으며 모든 Testcase 및 Register가 맞는 것을 확인했다.
 \begin{lstlisting}
-### SIMULATING ###
-TEST END
-SIM TIME : 98
-TOTAL CYCLE : 48 (Answer : 46)
-FINAL REGISTER OUTPUT 
- 0 00000000 (Answer : 00000000)
- 1 00000000 (Answer : 00000000)
- 2 00002ffc (Answer : 00002ffc)
- 3 00000000 (Answer : 00000000)
- 4 00000000 (Answer : 00000000)
- 5 00000000 (Answer : 00000000)
- 6 00000000 (Answer : 00000000)
- 7 00000000 (Answer : 00000000)
- 8 00000000 (Answer : 00000000)
- 9 00000000 (Answer : 00000000)
-10 0000000a (Answer : 0000000a)
-11 0000003f (Answer : 0000003f)
-12 fffffff1 (Answer : fffffff1)
-13 0000002f (Answer : 0000002f)
-14 0000000e (Answer : 0000000e)
-15 00000021 (Answer : 00000021)
-16 0000000a (Answer : 0000000a)
-17 0000000a (Answer : 0000000a)
-18 00000000 (Answer : 00000000)
-19 00000000 (Answer : 00000000)
-20 00000000 (Answer : 00000000)
-21 00000000 (Answer : 00000000)
-22 00000000 (Answer : 00000000)
-23 00000000 (Answer : 00000000)
-24 00000000 (Answer : 00000000)
-25 00000000 (Answer : 00000000)
-26 00000000 (Answer : 00000000)
-27 00000000 (Answer : 00000000)
-28 00000000 (Answer : 00000000)
-29 00000000 (Answer : 00000000)
-30 00000000 (Answer : 00000000)
-31 00000000 (Answer : 00000000)
-Correct output : 32/32
+  ### SIMULATING ###
+  TEST END
+  SIM TIME : 74
+  TOTAL CYCLE : 36 (Answer : 36)
+  FINAL REGISTER OUTPUT
+   0 00000000 (Answer : 00000000)
+   1 00000000 (Answer : 00000000)
+   2 00002ffc (Answer : 00002ffc)
+   3 00000000 (Answer : 00000000)
+   4 00000000 (Answer : 00000000)
+   5 00000000 (Answer : 00000000)
+   6 00000000 (Answer : 00000000)
+   7 00000000 (Answer : 00000000)
+   8 00000000 (Answer : 00000000)
+   9 00000000 (Answer : 00000000)
+  10 00000013 (Answer : 00000013)
+  11 00000003 (Answer : 00000003)
+  12 ffffffd7 (Answer : ffffffd7)
+  13 00000037 (Answer : 00000037)
+  14 00000013 (Answer : 00000013)
+  15 00000026 (Answer : 00000026)
+  16 0000001e (Answer : 0000001e)
+  17 0000000a (Answer : 0000000a)
+  18 00000000 (Answer : 00000000)
+  19 00000000 (Answer : 00000000)
+  20 00000000 (Answer : 00000000)
+  21 00000000 (Answer : 00000000)
+  22 00000000 (Answer : 00000000)
+  23 00000000 (Answer : 00000000)
+  24 00000000 (Answer : 00000000)
+  25 00000000 (Answer : 00000000)
+  26 00000000 (Answer : 00000000)
+  27 00000000 (Answer : 00000000)
+  28 00000000 (Answer : 00000000)
+  29 00000000 (Answer : 00000000)
+  30 00000000 (Answer : 00000000)
+  31 00000000 (Answer : 00000000)
+  Correct output : 32/32
 \end{lstlisting}
 
-이와 \textbf{Lab 2}에서 구현한 Single-cycle CPU에서 같은 파일으로 수행한 Benchmark output을 비교하면 다음과 같다.
+\texttt{non-controlflow\_mem.txt}를 사용하여 Benchmark를 실행했을 때, 다음과 같은 결과를 얻었으며 모든 Testcase 및 Register가 맞는 것을 확인했다.
 \begin{lstlisting}
-### SIMULATING ###
-TEST END
-SIM TIME : 80
-TOTAL CYCLE : 39 (Answer : 39)
-FINAL REGISTER OUTPUT
- 0 00000000
- 1 00000000
- 2 00002ffc
- 3 00000000
- 4 00000000
- 5 00000000
- 6 00000000
- 7 00000000
- 8 00000000
- 9 00000000
-10 0000000a
-11 0000003f
-12 fffffff1
-13 0000002f
-14 0000000e
-15 00000021
-16 0000000a
-17 0000000a
-18 00000000
-19 00000000
-20 00000000
-21 00000000
-22 00000000
-23 00000000
-24 00000000
-25 00000000
-26 00000000
-27 00000000
-28 00000000
-29 00000000
-30 00000000
-31 00000000
-Correct output : 32/32
+  ### SIMULATING ###
+  TEST END
+  SIM TIME : 98
+  TOTAL CYCLE : 48 (Answer : 48)
+  FINAL REGISTER OUTPUT
+   0 00000000 (Answer : 00000000)
+   1 00000000 (Answer : 00000000)
+   2 00002ffc (Answer : 00002ffc)
+   3 00000000 (Answer : 00000000)
+   4 00000000 (Answer : 00000000)
+   5 00000000 (Answer : 00000000)
+   6 00000000 (Answer : 00000000)
+   7 00000000 (Answer : 00000000)
+   8 00000000 (Answer : 00000000)
+   9 00000000 (Answer : 00000000)
+  10 0000000a (Answer : 0000000a)
+  11 0000003f (Answer : 0000003f)
+  12 fffffff1 (Answer : fffffff1)
+  13 0000002f (Answer : 0000002f)
+  14 0000000e (Answer : 0000000e)
+  15 00000021 (Answer : 00000021)
+  16 0000000a (Answer : 0000000a)
+  17 0000000a (Answer : 0000000a)
+  18 00000000 (Answer : 00000000)
+  19 00000000 (Answer : 00000000)
+  20 00000000 (Answer : 00000000)
+  21 00000000 (Answer : 00000000)
+  22 00000000 (Answer : 00000000)
+  23 00000000 (Answer : 00000000)
+  24 00000000 (Answer : 00000000)
+  25 00000000 (Answer : 00000000)
+  26 00000000 (Answer : 00000000)
+  27 00000000 (Answer : 00000000)
+  28 00000000 (Answer : 00000000)
+  29 00000000 (Answer : 00000000)
+  30 00000000 (Answer : 00000000)
+  31 00000000 (Answer : 00000000)
+  Correct output : 32/32
 \end{lstlisting}
 
-Single-cycle CPU에서 얻은 Cycle은 39 Cycle으로, 해당 Single-cycle CPU의 Cycle은 Pipelined CPU의 모든 Stage를 (IF -- ID -- EX -- MEM -- WB) 포함하기 때문에
-5 Microcycle이 필요하게 된다. 같은 Microcycle의 시간을 가진다고 가정했을 때, Single-cycle CPU는 39 \times 5 = 195 Mircocycle을 필요로 했던 반면,
-이번에 구현한 Pipelined CPU는 결과와 같이 48 Microcycle의 시간이 걸렸다. 따라서 195/48 \approx 4.06 배의 성능 향상을 이룰 수 있었다.
-이론치인 5배의 성능 향상을 낼 수 없었는데, 이는 Load instruction에서 Stall이 발생하여 필연적인 Bubble을 형성하였기 때문이다. 
+\texttt{ifelse\_mem.txt}를 사용하여 Benchmark를 실행했을 때, 다음과 같은 결과를 얻었으며 모든 Testcase 및 Register가 맞는 것을 확인했다.
+\begin{lstlisting}
+  ### SIMULATING ###
+  TEST END
+  SIM TIME : 90
+  TOTAL CYCLE : 44 (Answer : 44)
+  FINAL REGISTER OUTPUT
+   0 00000000 (Answer : 00000000)
+   1 00000000 (Answer : 00000000)
+   2 00002ffc (Answer : 00002ffc)
+   3 00000000 (Answer : 00000000)
+   4 00000000 (Answer : 00000000)
+   5 00000000 (Answer : 00000000)
+   6 00000000 (Answer : 00000000)
+   7 00000000 (Answer : 00000000)
+   8 00000000 (Answer : 00000000)
+   9 00000000 (Answer : 00000000)
+  10 00000000 (Answer : 00000000)
+  11 00000000 (Answer : 00000000)
+  12 00000000 (Answer : 00000000)
+  13 00000000 (Answer : 00000000)
+  14 0000000a (Answer : 0000000a)
+  15 00000028 (Answer : 00000028)
+  16 00000000 (Answer : 00000000)
+  17 0000000a (Answer : 0000000a)
+  18 00000000 (Answer : 00000000)
+  19 00000000 (Answer : 00000000)
+  20 00000000 (Answer : 00000000)
+  21 00000000 (Answer : 00000000)
+  22 00000000 (Answer : 00000000)
+  23 00000000 (Answer : 00000000)
+  24 00000000 (Answer : 00000000)
+  25 00000000 (Answer : 00000000)
+  26 00000000 (Answer : 00000000)
+  27 00000000 (Answer : 00000000)
+  28 00000000 (Answer : 00000000)
+  29 00000000 (Answer : 00000000)
+  30 00000000 (Answer : 00000000)
+  31 00000000 (Answer : 00000000)
+  Correct output : 32/32
+\end{lstlisting}
 
+\texttt{loop\_mem.txt}를 사용하여 Benchmark를 실행했을 때, 다음과 같은 결과를 얻었으며 모든 Testcase 및 Register가 맞는 것을 확인했다.
+\begin{lstlisting}
+  ### SIMULATING ###
+  TEST END
+  SIM TIME : 604
+  TOTAL CYCLE : 301 (Answer : 323)
+  FINAL REGISTER OUTPUT
+   0 00000000 (Answer : 00000000)
+   1 00000000 (Answer : 00000000)
+   2 00002ffc (Answer : 00002ffc)
+   3 00000000 (Answer : 00000000)
+   4 00000000 (Answer : 00000000)
+   5 00000000 (Answer : 00000000)
+   6 00000000 (Answer : 00000000)
+   7 00000000 (Answer : 00000000)
+   8 00000000 (Answer : 00000000)
+   9 00000000 (Answer : 00000000)
+  10 00000000 (Answer : 00000000)
+  11 00000000 (Answer : 00000000)
+  12 00000000 (Answer : 00000000)
+  13 00000000 (Answer : 00000000)
+  14 0000000a (Answer : 0000000a)
+  15 00000009 (Answer : 00000009)
+  16 0000005a (Answer : 0000005a)
+  17 0000000a (Answer : 0000000a)
+  18 00000000 (Answer : 00000000)
+  19 00000000 (Answer : 00000000)
+  20 00000000 (Answer : 00000000)
+  21 00000000 (Answer : 00000000)
+  22 00000000 (Answer : 00000000)
+  23 00000000 (Answer : 00000000)
+  24 00000000 (Answer : 00000000)
+  25 00000000 (Answer : 00000000)
+  26 00000000 (Answer : 00000000)
+  27 00000000 (Answer : 00000000)
+  28 00000000 (Answer : 00000000)
+  29 00000000 (Answer : 00000000)
+  30 00000000 (Answer : 00000000)
+  31 00000000 (Answer : 00000000)
+  Correct output : 32/32
+\end{lstlisting}
+
+\texttt{recursive\_mem.txt}를 사용하여 Benchmark를 실행했을 때, 다음과 같은 결과를 얻었으며 모든 Testcase 및 Register가 맞는 것을 확인했다.
+\begin{lstlisting}
+  ### SIMULATING ###
+  TEST END
+  SIM TIME : 2220
+  TOTAL CYCLE : 1109 (Answer : 1188)
+  FINAL REGISTER OUTPUT
+   0 00000000 (Answer : 00000000)
+   1 00000000 (Answer : 00000000)
+   2 00002ffc (Answer : 00002ffc)
+   3 00000000 (Answer : 00000000)
+   4 00000000 (Answer : 00000000)
+   5 00000000 (Answer : 00000000)
+   6 00000000 (Answer : 00000000)
+   7 00000000 (Answer : 00000000)
+   8 00000000 (Answer : 00000000)
+   9 00000000 (Answer : 00000000)
+  10 0000000d (Answer : 0000000d)
+  11 00000000 (Answer : 00000000)
+  12 00000000 (Answer : 00000000)
+  13 00000000 (Answer : 00000000)
+  14 00000001 (Answer : 00000001)
+  15 0000000d (Answer : 0000000d)
+  16 00000015 (Answer : 00000015)
+  17 0000000a (Answer : 0000000a)
+  18 00000000 (Answer : 00000000)
+  19 00000000 (Answer : 00000000)
+  20 00000000 (Answer : 00000000)
+  21 00000022 (Answer : 00000022)
+  22 00000000 (Answer : 00000000)
+  23 00000037 (Answer : 00000037)
+  24 00000059 (Answer : 00000059)
+  25 00000000 (Answer : 00000000)
+  26 00000000 (Answer : 00000000)
+  27 00000000 (Answer : 00000000)
+  28 00000000 (Answer : 00000000)
+  29 00000000 (Answer : 00000000)
+  30 00000000 (Answer : 00000000)
+  31 00000000 (Answer : 00000000)
+  Correct output : 32/32
+\end{lstlisting}
 \end{document}
 % vim: textwidth=79
