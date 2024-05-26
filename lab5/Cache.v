@@ -40,9 +40,10 @@ module Cache #(parameter LINE_SIZE = 16,
   );
 
   // ---------- Generating Cache set * `CACHE_SET_COUNT ----------
-  wire cache_update_of_set[0: NUM_SETS - 1];
-  wire cache_hit_of_set   [0: NUM_SETS - 1];
-  wire [31:0] cache_data_of_set [0: NUM_SETS - 1];
+  wire cache_input_valid_of_set   [0: NUM_SETS - 1];
+  wire cache_hit_of_set           [0: NUM_SETS - 1];
+  wire cache_output_valid_of_set  [0: NUM_SETS - 1];
+  wire [31:0] cache_data_of_set   [0: NUM_SETS - 1];
 
   generate
     integer i = 0;
@@ -52,9 +53,12 @@ module Cache #(parameter LINE_SIZE = 16,
         .rst(reset),
         
         .addr(addr),
-
+        .din(din),
+        .is_input_valid(cache_input_valid_of_set[i]),
+        
         .hit(cache_hit_of_set[i]),
-        .data(cache_data_of_set[i]),
+        .dout(cache_data_of_set[i]),
+        .is_output_valid(cache_valid_of_set[i])
       );
     end
   endgenerate
@@ -67,19 +71,4 @@ module Cache #(parameter LINE_SIZE = 16,
       is_ready <= 1;
     end
   end 
-  
-  always @(posedge clk) begin
-    case (cache_state) begin
-      CACHE_STATUS_READY: begin
-      end
-      CACHE_STATUS_READ: begin
-      end
-      CACHE_STATUS_WRITE: begin
-      end
-      CACHE_STATUS_READING_MEMORY: begin
-      end
-      CACHE_STATUS_WRITING_MEMORY: begin
-      end
-    end
-  end
 endmodule
