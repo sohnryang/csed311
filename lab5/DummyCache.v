@@ -47,7 +47,6 @@ module DummyCache #(
 
   always @(*) begin
     block_offset = addr[(`CLOG2((LINE_SIZE>>2)))+1:2];
-    is_hit = 1;
 
     case (state)
       `DUMMY_CACHE_STANDBY: begin
@@ -67,6 +66,7 @@ module DummyCache #(
         data_mem_write = 0;
         next_memory_block = {(LINE_SIZE * 8) {1'b0}};
         is_output_valid = 0;
+        is_hit = 0;
       end
       `DUMMY_CACHE_READ: begin
         if (data_mem_is_output_valid) begin
@@ -75,12 +75,14 @@ module DummyCache #(
           data_mem_write = 0;
           data_mem_is_input_valid = 0;
           is_output_valid = 1;
+          is_hit = 1;
         end else begin
           next_state = `DUMMY_CACHE_READ;
           data_mem_read = 0;
           data_mem_write = 0;
           data_mem_is_input_valid = 0;
           is_output_valid = 0;
+          is_hit = 0;
         end
         next_memory_block = data_mem_dout;
       end
@@ -98,27 +100,22 @@ module DummyCache #(
         end
         next_memory_block = (data_mem_dout & ~({{(LINE_SIZE*8-32){1'b0}},32'hffffffff} << (32 * block_offset))) | ({{(LINE_SIZE*8-32){1'b0}},din} << (32 * block_offset));
         is_output_valid = 0;
+        is_hit = 0;
       end
       `DUMMY_CACHE_WRITE_WRITE: begin
         if (data_mem_ready) begin
           next_state = `DUMMY_CACHE_STANDBY;
           data_mem_write = 0;
           data_mem_is_input_valid = 0;
+          is_hit = 1;
         end else begin
           next_state = `DUMMY_CACHE_WRITE_WRITE;
           data_mem_write = 1;
           data_mem_is_input_valid = 1;
+          is_hit = 0;
         end
         data_mem_read = 0;
         next_memory_block = memory_block;
-        is_output_valid = 0;
-      end
-      default: begin
-        next_state = 0;
-        data_mem_read = 0;
-        data_mem_write = 0;
-        data_mem_is_input_valid = 0;
-        next_memory_block = 0;
         is_output_valid = 0;
       end
     endcase
