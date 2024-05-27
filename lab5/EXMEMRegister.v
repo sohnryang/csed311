@@ -12,6 +12,7 @@ module EXMEMRegister (
     input [31:0] alu_output_in,
     input [31:0] rs2_in,
     input [ 4:0] rd_id_in,
+    input [31:0] pc_in,
 
     output reg wb_enable,
     output reg mem_enable,
@@ -21,7 +22,8 @@ module EXMEMRegister (
 
     output [31:0] alu_output,
     output [31:0] rs2,
-    output [ 4:0] rd_id
+    output [ 4:0] rd_id,
+    output [31:0] pc
 );
   always @(posedge clk) begin
     if (reset) begin
@@ -34,6 +36,7 @@ module EXMEMRegister (
       alu_output <= 32'b0;
       rs2 <= 32'b0;
       rd_id <= 5'b0;
+      pc <= 32'b0;
     end else if (write_enable) begin
       wb_enable <= wb_enable_in;
       mem_enable <= mem_enable_in;
@@ -44,6 +47,7 @@ module EXMEMRegister (
       alu_output <= alu_output_in;
       rs2 <= rs2_in;
       rd_id <= rd_id_in;
+      pc <= pc_in;
     end
   end
 endmodule

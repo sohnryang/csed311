@@ -9,10 +9,12 @@
 // 4. `include files if required
 
 module cpu (
-    input         reset,           // positive reset signal
-    input         clk,             // clock signal
-    output        is_halted,       // Whehther to finish simulation
-    output [31:0] print_reg[0:31]
+    input         reset,                  // positive reset signal
+    input         clk,                    // clock signal
+    output        is_halted,              // Whehther to finish simulation
+    output [31:0] print_reg      [0:31],
+    output [31:0] memory_accesses,
+    output [31:0] hits
 );  // Whehther to finish simulation
   /***** Wire declarations *****/
   // ---------- Update program counter ----------
@@ -359,6 +361,7 @@ module cpu (
   wire [31:0] EX_MEM_reg_alu_output;
   wire [31:0] EX_MEM_reg_rs2;
   wire [4:0] EX_MEM_reg_rd_id;
+  wire [31:0] EX_MEM_reg_pc;
   EXMEMRegister ex_mem_reg (
       .clk  (clk),
       .reset(reset),
@@ -373,6 +376,7 @@ module cpu (
       .alu_output_in(alu_alu_result),
       .rs2_in(rs2_fwd_mux_mux_out),
       .rd_id_in(ID_EX_reg_rd_id),
+      .pc_in(ID_EX_reg_pc),
 
       .wb_enable(EX_MEM_reg_wb_enable),
       .mem_enable(EX_MEM_reg_mem_enable),
@@ -382,7 +386,8 @@ module cpu (
 
       .alu_output(EX_MEM_reg_alu_output),
       .rs2(EX_MEM_reg_rs2),
-      .rd_id(EX_MEM_reg_rd_id)
+      .rd_id(EX_MEM_reg_rd_id),
+      .pc(EX_MEM_reg_pc)
   );
 
   wire [31:0] cache_dout;
@@ -405,6 +410,16 @@ module cpu (
   );
   wire stall_whole;
   assign stall_whole = cache_is_input_valid & (~cache_is_ready | (~EX_MEM_reg_mem_write & ~cache_is_output_valid) | ~cache_is_hit);
+
+  CacheCounter cache_counter (
+      .reset(reset),
+      .clk(clk),
+      .is_hit(cache_is_hit),
+      .is_input_valid(cache_is_input_valid),
+      .pc(EX_MEM_reg_pc),
+      .memory_accesses(memory_accesses),
+      .hits(hits)
+  );
 
   // Update MEM/WB pipeline registers here
   wire [31:0] rd_mux_mux_out;
