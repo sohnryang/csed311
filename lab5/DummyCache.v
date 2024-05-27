@@ -248,7 +248,56 @@ module DummyCache #(
     end else begin
       state <= next_state;
       memory_block <= next_memory_block;
-      $display("%x", set_0_data_table[0]);
+    end
+  end
+
+  always @(posedge clk) begin
+    if (state == `DUMMY_CACHE_READ) begin
+      //$display("%x %x %x %x %x | %x %x %x %x | %x ", tag_of_addr, set_0_tag_table[idx_of_addr], set_1_tag_table[idx_of_addr], set_2_tag_table[idx_of_addr], set_3_tag_table[idx_of_addr], set_0_data_table[idx_of_addr], set_1_data_table[idx_of_addr], set_2_data_table[idx_of_addr], set_3_data_table[idx_of_addr], idx_of_addr);
+    end else if (state == `DUMMY_CACHE_WRITE_READ) begin
+      // WRITE-HIT
+      if (set_0_tag_table[idx_of_addr] == tag_of_addr) begin
+      end else if (set_1_tag_table[idx_of_addr] == tag_of_addr) begin
+      end else if (set_2_tag_table[idx_of_addr] == tag_of_addr) begin
+      end else if (set_3_tag_table[idx_of_addr] == tag_of_addr) begin
+      end else begin  //WRITE-MISS -> Check Valid Bit
+        if (set_0_valid_table[idx_of_addr] == 1'b0) begin
+        end else if (set_1_valid_table[idx_of_addr] == 1'b0) begin
+        end else if (set_2_valid_table[idx_of_addr] == 1'b0) begin
+        end else if (set_3_valid_table[idx_of_addr] == 1'b0) begin
+        end else begin  // WRITE-MISS -> Check Valid Bit -> Check (Pseudo-LRU) ... Reference Corresponding LRU array.
+          case (idx_of_addr)
+            2'b00: begin
+              if (idx_0_lru_table[2'b00] == 1'b0) begin
+              end else if (idx_0_lru_table[2'b01] == 1'b0) begin
+              end else if (idx_0_lru_table[2'b10] == 1'b0) begin
+              end else if (idx_0_lru_table[2'b11] == 1'b0) begin
+              end
+            end
+            2'b01: begin
+              if (idx_1_lru_table[2'b00] == 1'b0) begin
+              end else if (idx_1_lru_table[2'b01] == 1'b0) begin
+              end else if (idx_1_lru_table[2'b10] == 1'b0) begin
+              end else if (idx_1_lru_table[2'b11] == 1'b0) begin
+              end
+            end
+            2'b10: begin
+              if (idx_2_lru_table[2'b00] == 1'b0) begin
+              end else if (idx_2_lru_table[2'b01] == 1'b0) begin
+              end else if (idx_2_lru_table[2'b10] == 1'b0) begin
+              end else if (idx_2_lru_table[2'b11] == 1'b0) begin
+              end
+            end
+            2'b11: begin
+              if (idx_3_lru_table[2'b00] == 1'b0) begin
+              end else if (idx_3_lru_table[2'b01] == 1'b0) begin
+              end else if (idx_3_lru_table[2'b10] == 1'b0) begin
+              end else if (idx_3_lru_table[2'b11] == 1'b0) begin
+              end
+            end
+          endcase
+        end
+      end
     end
   end
 endmodule
