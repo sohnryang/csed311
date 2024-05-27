@@ -2,6 +2,7 @@ module EXMEMRegister (
     input clk,
     input reset,
 
+    input write_enable,
     input wb_enable_in,
     input mem_enable_in,
     input mem_write_in,
@@ -33,7 +34,7 @@ module EXMEMRegister (
       alu_output <= 32'b0;
       rs2 <= 32'b0;
       rd_id <= 5'b0;
-    end else begin
+    end else if (write_enable) begin
       wb_enable <= wb_enable_in;
       mem_enable <= mem_enable_in;
       mem_write <= mem_write_in;

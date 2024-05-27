@@ -23,7 +23,7 @@ module cpu (
   PC pc (
       .reset(reset),  // input (Use reset to initialize PC. Initial value must be 0)
       .clk(clk),  // input
-      .write_enable(pc_write_enable),
+      .write_enable(~stall_whole & pc_write_enable),
       .next_pc(pc_next_pc),  // input
       .current_pc(pc_current_pc)  // output
   );
@@ -47,7 +47,7 @@ module cpu (
       .clk  (clk),
       .reset(reset),
 
-      .write_enable(IF_ID_reg_write_enable),
+      .write_enable(~stall_whole & IF_ID_reg_write_enable),
       .bubble_in(ctrl_hdu_is_hazardous),
 
       .inst_in(imem_dout),
@@ -186,6 +186,7 @@ module cpu (
       .clk  (clk),
       .reset(reset),
 
+      .write_enable(~stall_whole),
       .wb_enable_in(ctrl_unit_wb_enable & ~is_hazardous & ~IF_ID_reg_bubble),
       .mem_enable_in(ctrl_unit_mem_enable),
       .mem_write_in(ctrl_unit_mem_write & ~is_hazardous & ~IF_ID_reg_bubble),
@@ -362,6 +363,7 @@ module cpu (
       .clk  (clk),
       .reset(reset),
 
+      .write_enable(~stall_whole),
       .wb_enable_in(ID_EX_reg_wb_enable & ID_EX_reg_valid),
       .mem_enable_in(ID_EX_reg_mem_enable & ID_EX_reg_valid),
       .mem_write_in(ID_EX_reg_mem_write & ID_EX_reg_valid),
@@ -383,23 +385,32 @@ module cpu (
       .rd_id(EX_MEM_reg_rd_id)
   );
 
-  // ---------- Data Memory ----------
-  wire [31:0] dmem_dout;
-  DataMemory dmem (
-      .reset    (reset),                  // input
-      .clk      (clk),                    // input
-      .addr     (EX_MEM_reg_alu_output),  // input
-      .din      (EX_MEM_reg_rs2),         // input
-      .mem_read (EX_MEM_reg_mem_enable),  // input
-      .mem_write(EX_MEM_reg_mem_write),   // input
-      .dout     (dmem_dout)               // output
+  wire [31:0] cache_dout;
+  wire cache_is_input_valid;
+  wire cache_is_ready;
+  wire cache_is_output_valid;
+  wire cache_is_hit;
+  assign cache_is_input_valid = EX_MEM_reg_mem_enable | EX_MEM_reg_mem_write;
+  DummyCache cache (
+      .reset(reset),
+      .clk(clk),
+      .is_input_valid(cache_is_input_valid),
+      .addr(EX_MEM_reg_alu_output),
+      .mem_rw(EX_MEM_reg_mem_write),
+      .din(EX_MEM_reg_rs2),
+      .is_ready(cache_is_ready),
+      .is_output_valid(cache_is_output_valid),
+      .dout(cache_dout),
+      .is_hit(cache_is_hit)
   );
+  wire stall_whole;
+  assign stall_whole = cache_is_input_valid & (~cache_is_ready | (~EX_MEM_reg_mem_write & ~cache_is_output_valid) | ~cache_is_hit);
 
   // Update MEM/WB pipeline registers here
   wire [31:0] rd_mux_mux_out;
   MUX2X1 rd_mux (
       .mux_in_0(EX_MEM_reg_alu_output),
-      .mux_in_1(dmem_dout),
+      .mux_in_1(cache_dout),
       .sel(EX_MEM_reg_mem_enable),
       .mux_out(rd_mux_mux_out)
   );
@@ -412,6 +423,7 @@ module cpu (
       .clk  (clk),
       .reset(reset),
 
+      .write_enable(~stall_whole),
       .wb_enable_in(EX_MEM_reg_wb_enable),
       .is_halted_in(EX_MEM_reg_is_halted),
 

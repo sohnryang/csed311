@@ -2,6 +2,7 @@ module MEMWBRegister (
     input clk,
     input reset,
 
+    input write_enable,
     input wb_enable_in,
     input is_halted_in,
 
@@ -21,7 +22,7 @@ module MEMWBRegister (
 
       rd_id <= 5'b0;
       rd <= 32'b0;
-    end else begin
+    end else if (write_enable) begin
       wb_enable <= wb_enable_in;
       is_halted <= is_halted_in;
 
