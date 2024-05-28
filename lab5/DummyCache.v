@@ -79,6 +79,8 @@ module DummyCache #(
   reg [3:0] idx_2_lru_table;
   reg [3:0] idx_3_lru_table;
   
+  reg [1:0] hit_lru_set_no;
+
   always @(*) begin
     tag_of_addr = addr[31:6];
     idx_of_addr = addr[5:4];
@@ -102,6 +104,7 @@ module DummyCache #(
         next_memory_block = {(LINE_SIZE * 8) {1'b0}};
         is_output_valid = 0;
         is_hit = 0;
+        hit_lru_set_no = 0;
       end
       `DUMMY_CACHE_READ: begin
         if (set_0_tag_table[idx_of_addr] == tag_of_addr && set_0_valid_table[idx_of_addr] == 1'b1) begin
@@ -113,6 +116,7 @@ module DummyCache #(
           data_mem_is_input_valid = 0;
           is_output_valid = 1;
           is_hit = 1;
+          hit_lru_set_no = 2'b00;
         end else if (set_1_tag_table[idx_of_addr] == tag_of_addr && set_1_valid_table[idx_of_addr] == 1'b1) begin
           next_memory_block = set_1_data_table[idx_of_addr];
           next_state = `DUMMY_CACHE_STANDBY;
@@ -122,6 +126,7 @@ module DummyCache #(
           data_mem_is_input_valid = 0;
           is_output_valid = 1;
           is_hit = 1;
+          hit_lru_set_no = 2'b01;
         end else if (set_2_tag_table[idx_of_addr] == tag_of_addr && set_2_valid_table[idx_of_addr] == 1'b1) begin
           next_memory_block = set_2_data_table[idx_of_addr];
           next_state = `DUMMY_CACHE_STANDBY;
@@ -131,6 +136,7 @@ module DummyCache #(
           data_mem_is_input_valid = 0;
           is_output_valid = 1;
           is_hit = 1;
+          hit_lru_set_no = 2'b10;
         end else if (set_3_tag_table[idx_of_addr] == tag_of_addr && set_3_valid_table[idx_of_addr] == 1'b1) begin
           next_memory_block = set_3_data_table[idx_of_addr];
           next_state = `DUMMY_CACHE_STANDBY;
@@ -140,6 +146,7 @@ module DummyCache #(
           data_mem_is_input_valid = 0;
           is_output_valid = 1;
           is_hit = 1;
+          hit_lru_set_no = 2'b11;
         end else begin
           next_memory_block = data_mem_dout;
           if (data_mem_is_output_valid) begin
@@ -151,6 +158,7 @@ module DummyCache #(
             is_output_valid = 1;
             is_hit = 1;
             data_mem_read_called = 0;
+            hit_lru_set_no = 0;
           end else if (data_mem_read_called) begin
             next_state = `DUMMY_CACHE_READ;
             data_mem_read = 0;
@@ -159,6 +167,7 @@ module DummyCache #(
             data_mem_is_input_valid = 0;
             is_output_valid = 0;
             is_hit = 0;
+            hit_lru_set_no = 0;
           end else begin
             next_state = `DUMMY_CACHE_READ;
             data_mem_read = 1;
@@ -167,6 +176,7 @@ module DummyCache #(
             data_mem_is_input_valid = 1;
             is_output_valid = 0;
             is_hit = 0;
+            hit_lru_set_no = 0;
           end
         end
       end
@@ -186,6 +196,7 @@ module DummyCache #(
         is_output_valid = 0;
         is_hit = 0;
         data_mem_read_called = 0;
+        hit_lru_set_no = 0;
       end
       `DUMMY_CACHE_WRITE_WRITE: begin
         if (data_mem_ready) begin
@@ -203,6 +214,7 @@ module DummyCache #(
         next_memory_block = memory_block;
         is_output_valid = 0;
         data_mem_read_called = 0;
+        hit_lru_set_no = 0;
       end
     endcase
 
@@ -217,10 +229,10 @@ module DummyCache #(
     if (reset) begin
       state <= `DUMMY_CACHE_STANDBY;
 
-      idx_0_lru_table <= 4'b1111;
-      idx_1_lru_table <= 4'b1111;
-      idx_2_lru_table <= 4'b1111;
-      idx_3_lru_table <= 4'b1111;
+      idx_0_lru_table <= 4'b0000;
+      idx_1_lru_table <= 4'b0000;
+      idx_2_lru_table <= 4'b0000;
+      idx_3_lru_table <= 4'b0000;
 
       for (i = 0; i <= 3; i = i + 1) begin
         /* verilator lint_off BLKSEQ */
@@ -252,7 +264,36 @@ module DummyCache #(
   end
 
   always @(posedge clk) begin
-    if (state == `DUMMY_CACHE_READ) begin
+    if (state == `DUMMY_CACHE_STANDBY) begin
+      if (is_hit) begin
+        case (idx_of_addr)  // BIT-PLRU update
+        2'b00: begin
+          if ((idx_0_lru_table | (1 << hit_lru_set_no)) == 4'b1111) begin
+            idx_0_lru_table <= (1 << hit_lru_set_no);
+          end else
+            idx_0_lru_table <= (idx_0_lru_table | 1 << hit_lru_set_no);
+        end
+        2'b01: begin
+          if ((idx_1_lru_table | (1 << hit_lru_set_no)) == 4'b1111) begin
+            idx_1_lru_table <= (1 << hit_lru_set_no);
+          end else
+            idx_1_lru_table <= (idx_1_lru_table | 1 << hit_lru_set_no);
+        end
+        2'b10: begin
+          if ((idx_2_lru_table | (1 << hit_lru_set_no)) == 4'b1111) begin
+            idx_2_lru_table <= (1 << hit_lru_set_no);
+          end else
+            idx_2_lru_table <= (idx_2_lru_table | 1 << hit_lru_set_no);
+        end
+        2'b11: begin
+          if ((idx_3_lru_table | (1 << hit_lru_set_no)) == 4'b1111) begin
+            idx_3_lru_table <= (1 << hit_lru_set_no);
+          end else
+            idx_3_lru_table <= (idx_3_lru_table | 1 << hit_lru_set_no);
+        end
+        endcase
+      end
+    end else if (state == `DUMMY_CACHE_READ) begin
       // $display("%x | %x %x %x %x | %x %x %x %x | %x ", tag_of_addr, set_0_tag_table[idx_of_addr], set_1_tag_table[idx_of_addr], set_2_tag_table[idx_of_addr], set_3_tag_table[idx_of_addr], set_0_data_table[idx_of_addr], set_1_data_table[idx_of_addr], set_2_data_table[idx_of_addr], set_3_data_table[idx_of_addr], idx_of_addr);
     end else if (state == `DUMMY_CACHE_WRITE_WRITE) begin // WRITE-HIT -> Overwrite on it.
       if (set_0_tag_table[idx_of_addr] == tag_of_addr) begin
@@ -288,30 +329,62 @@ module DummyCache #(
             case (idx_of_addr)
               2'b00: begin
                 if (idx_0_lru_table[2'b00] == 1'b0) begin
+                  set_0_data_table[idx_of_addr] <= next_memory_block;
+                  set_0_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_0_lru_table[2'b01] == 1'b0) begin
+                  set_1_data_table[idx_of_addr] <= next_memory_block;
+                  set_1_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_0_lru_table[2'b10] == 1'b0) begin
+                  set_2_data_table[idx_of_addr] <= next_memory_block;
+                  set_2_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_0_lru_table[2'b11] == 1'b0) begin
+                  set_3_data_table[idx_of_addr] <= next_memory_block;
+                  set_3_tag_table[idx_of_addr] <= tag_of_addr;
                 end
               end
               2'b01: begin
                 if (idx_1_lru_table[2'b00] == 1'b0) begin
+                  set_0_data_table[idx_of_addr] <= next_memory_block;
+                  set_0_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_1_lru_table[2'b01] == 1'b0) begin
+                  set_1_data_table[idx_of_addr] <= next_memory_block;
+                  set_1_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_1_lru_table[2'b10] == 1'b0) begin
+                  set_2_data_table[idx_of_addr] <= next_memory_block;
+                  set_2_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_1_lru_table[2'b11] == 1'b0) begin
+                  set_3_data_table[idx_of_addr] <= next_memory_block;
+                  set_3_tag_table[idx_of_addr] <= tag_of_addr;
                 end
               end
               2'b10: begin
                 if (idx_2_lru_table[2'b00] == 1'b0) begin
+                  set_0_data_table[idx_of_addr] <= next_memory_block;
+                  set_0_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_2_lru_table[2'b01] == 1'b0) begin
+                  set_1_data_table[idx_of_addr] <= next_memory_block;
+                  set_1_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_2_lru_table[2'b10] == 1'b0) begin
+                  set_2_data_table[idx_of_addr] <= next_memory_block;
+                  set_2_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_2_lru_table[2'b11] == 1'b0) begin
+                  set_3_data_table[idx_of_addr] <= next_memory_block;
+                  set_3_tag_table[idx_of_addr] <= tag_of_addr;
                 end
               end
               2'b11: begin
                 if (idx_3_lru_table[2'b00] == 1'b0) begin
+                  set_0_data_table[idx_of_addr] <= next_memory_block;
+                  set_0_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_3_lru_table[2'b01] == 1'b0) begin
+                  set_1_data_table[idx_of_addr] <= next_memory_block;
+                  set_1_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_3_lru_table[2'b10] == 1'b0) begin
+                  set_2_data_table[idx_of_addr] <= next_memory_block;
+                  set_2_tag_table[idx_of_addr] <= tag_of_addr;
                 end else if (idx_3_lru_table[2'b11] == 1'b0) begin
+                  set_3_data_table[idx_of_addr] <= next_memory_block;
+                  set_3_tag_table[idx_of_addr] <= tag_of_addr;
                 end
               end
             endcase
