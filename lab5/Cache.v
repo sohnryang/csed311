@@ -21,7 +21,6 @@ module Cache #(
   reg [LINE_SIZE * 8 - 1:0] data_mem_din;
   wire data_mem_is_output_valid, data_mem_ready;
   wire [LINE_SIZE * 8 - 1:0] data_mem_dout;
-  reg [31:0] real_data; 
 
   DataMemory #(
       .BLOCK_SIZE(LINE_SIZE)
