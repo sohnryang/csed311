@@ -396,7 +396,7 @@ module cpu (
   wire cache_is_output_valid;
   wire cache_is_hit;
   assign cache_is_input_valid = EX_MEM_reg_mem_enable | EX_MEM_reg_mem_write;
-  DummyCache cache (
+  Cache cache (
       .reset(reset),
       .clk(clk),
       .is_input_valid(cache_is_input_valid),
