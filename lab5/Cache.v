@@ -65,8 +65,8 @@ module Cache #(
 
   reg [1: 0] victim;
 
-  assign is_ready = (next_state == `DUMMY_CACHE_STANDBY);
-  assign is_output_valid = (state == `DUMMY_CACHE_READ);
+  assign is_ready = (next_state == `STATE_CACHE_STANDBY);
+  assign is_output_valid = (state == `STATE_CACHE_READ);
 
   assign tag_of_addr = addr[`CACHE_TAG_FIELD];
   assign idx_of_addr = addr[`CACHE_IDX_FIELD];
@@ -88,36 +88,36 @@ module Cache #(
   
   always @(*) begin
     case (state)
-      `DUMMY_CACHE_STANDBY: begin
+      `STATE_CACHE_STANDBY: begin
         if (is_input_valid) begin
-          next_state = `DUMMY_CACHE_READ;
+          next_state = `STATE_CACHE_READ;
         end else begin
-          next_state = `DUMMY_CACHE_STANDBY;
+          next_state = `STATE_CACHE_STANDBY;
         end
       end
-      `DUMMY_CACHE_READ: begin
+      `STATE_CACHE_READ: begin
         if (is_hit) begin
-          next_state = `DUMMY_CACHE_STANDBY;
+          next_state = `STATE_CACHE_STANDBY;
         end else begin
           if (dirty_table[idx_of_addr][victim]) begin
-            next_state = `DUMMY_CACHE_WRITE_WRITE;
+            next_state = `STATE_CACHE_WRITE_WRITE;
           end else begin
-            next_state = `DUMMY_CACHE_WRITE_READ;
+            next_state = `STATE_CACHE_WRITE_READ;
           end
         end
       end
-      `DUMMY_CACHE_WRITE_READ: begin
+      `STATE_CACHE_WRITE_READ: begin
         if (data_mem_ready) begin
-          next_state = `DUMMY_CACHE_READ;
+          next_state = `STATE_CACHE_READ;
         end else begin
-          next_state = `DUMMY_CACHE_WRITE_READ;
+          next_state = `STATE_CACHE_WRITE_READ;
         end
       end
-      `DUMMY_CACHE_WRITE_WRITE: begin
+      `STATE_CACHE_WRITE_WRITE: begin
         if (data_mem_ready) begin
-          next_state = `DUMMY_CACHE_WRITE_READ;
+          next_state = `STATE_CACHE_WRITE_READ;
         end else begin
-          next_state = `DUMMY_CACHE_WRITE_WRITE;
+          next_state = `STATE_CACHE_WRITE_WRITE;
         end
       end
     endcase
@@ -143,7 +143,7 @@ module Cache #(
     endcase
 
     case (state)
-      `DUMMY_CACHE_STANDBY: begin
+      `STATE_CACHE_STANDBY: begin
         cache_control = 0;
         data_mem_is_input_valid = 0;
         data_mem_addr = addr;
@@ -151,7 +151,7 @@ module Cache #(
         data_mem_write = 0;
         data_mem_din = 0;
       end
-      `DUMMY_CACHE_READ: begin
+      `STATE_CACHE_READ: begin
         if (is_hit) begin   // Hit
           if (mem_rw) begin
             cache_control |= `ACTION_WRITE_CACHE;
@@ -162,12 +162,12 @@ module Cache #(
           data_mem_write = 0;
           data_mem_din = data_table[idx_of_addr][stored_set];
         end else begin    // Miss
-          if (next_state == `DUMMY_CACHE_WRITE_WRITE) begin   // Miss Write -> Write current cache back to memory
+          if (next_state == `STATE_CACHE_WRITE_WRITE) begin   // Miss Write -> Write current cache back to memory
             data_mem_is_input_valid = 1;
             data_mem_addr = {tag_table[idx_of_addr][victim], idx_of_addr, 4'b0};
             data_mem_read = 0;
             data_mem_write = 1;
-          end else if (next_state == `DUMMY_CACHE_WRITE_READ) begin   // Miss Read -> Fetch from memory
+          end else if (next_state == `STATE_CACHE_WRITE_READ) begin   // Miss Read -> Fetch from memory
             data_mem_is_input_valid = 1;
             data_mem_addr = addr;
             data_mem_read = 1;
@@ -181,7 +181,7 @@ module Cache #(
           data_mem_din = data_table[idx_of_addr][victim];
         end
       end
-      `DUMMY_CACHE_WRITE_READ: begin
+      `STATE_CACHE_WRITE_READ: begin
         if (data_mem_ready) begin
           cache_control |= `ACTION_ALLOC_CACHE;
         end
@@ -191,8 +191,8 @@ module Cache #(
         data_mem_write = 0;
         data_mem_din = 0;
       end
-      `DUMMY_CACHE_WRITE_WRITE: begin
-        if (next_state == `DUMMY_CACHE_WRITE_READ) begin
+      `STATE_CACHE_WRITE_WRITE: begin
+        if (next_state == `STATE_CACHE_WRITE_READ) begin
           data_mem_is_input_valid = 1;
           data_mem_read = 1;
           data_mem_write = 0;
@@ -210,17 +210,11 @@ module Cache #(
     endcase
   end
 
-  always @(posedge clk) begin
-    if (state == `DUMMY_CACHE_STANDBY) begin
-      real_data <= din;
-    end
-  end
-
   integer i;
   integer j;
   always @(posedge clk) begin
     if (reset) begin
-      state <= `DUMMY_CACHE_STANDBY;
+      state <= `STATE_CACHE_STANDBY;
       /* verilator lint_off BLKSEQ */
       for (i = 0; i < `CACHE_SET_COUNT; i = i + 1) begin
         for (j = 0; j < `CACHE_WAY_COUNT; j = j + 1) begin
